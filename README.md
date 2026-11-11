@@ -2,9 +2,9 @@
 
 Unlimited sudoku that runs fully in the browser. Visit once, then it works offline (installable as an app).
 
-- **Home**: Continue (last game), Continue… (all unfinished games), New game (Easy / Medium / Hard / Expert), Settings.
+- **Home**: Continue (last game), Continue… (all active games, shown when there are 2+), New game (Easy / Medium / Hard / Expert), Settings.
 - **New games** are generated on the device when you tap (a few ms, even Expert).
-- **Saved games**: every game you start is saved. Settings → "Keep unfinished games" (10 / 25 / 50 / 100, default 50); the least recently played are dropped beyond that.
+- **Saved games**: every game you start is saved, up to 20; the least recently played is dropped beyond that. Each keeps its last 150 undo changes, so saved data stays under 100 KB.
 - **Appearance**: Auto (follows the device's light/dark mode), Light or Dark.
 - Notes (pencil marks), undo, erase, hint, mistakes in red, timer, highlights, keyboard (1-9, arrows, Backspace, N, Ctrl/Cmd+Z), backup/restore to a file.
 - No server, no accounts, no tracking. Progress lives in the browser's localStorage.
@@ -23,6 +23,7 @@ Every puzzle has exactly one solution.
 | `sudoku.js` | engine: solver, grader, generator (works in Node too) |
 | `sw.js` | offline cache. **Bump `VERSION` on every change** so phones update |
 | `tools/test-engine.js` | `node tools/test-engine.js` checks uniqueness, solutions |
+| `tools/check-size.js` | `node tools/check-size.js` fails if the app download or worst-case saved data is over 100 KB (runs in CI) |
 | `tools/make-icons.py` | redraws the icons |
 
 ## Run locally

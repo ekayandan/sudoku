@@ -7,7 +7,7 @@
   <meta name="description" content="Unlimited sudoku that works offline on any device.">
   <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
-  <script>try{var t=localStorage.getItem('sudoku.theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
+  <script>try{var t=localStorage.getItem('sudoku.theme');document.documentElement.dataset.theme=t==='dark'||t==='system'?(t==='dark'?'dark':''):'light'}catch(e){document.documentElement.dataset.theme='light'}</script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -30,11 +30,9 @@
       </button>
       <button id="btn-saved" class="card" hidden>
         <span class="menu-title">Continue…</span>
-        <span id="saved-info" class="muted small"></span>
       </button>
       <button id="btn-new" class="card">
         <span class="menu-title">New game</span>
-        <span class="muted small">Easy, Medium, Hard or Expert</span>
       </button>
       <button id="btn-settings" class="card">
         <span class="menu-title">Settings</span>
@@ -46,16 +44,15 @@
     </footer>
   </main>
 
-  <!-- UNFINISHED GAMES -->
+  <!-- ACTIVE GAMES -->
   <main id="saved" class="screen" hidden>
     <header class="topbar">
       <button class="icon-btn" id="btn-saved-back" aria-label="Back"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-      <h2>Unfinished games</h2>
+      <h2>Active games</h2>
       <span class="spacer"></span>
     </header>
     <div id="saved-list" class="saved-list"></div>
-    <p id="saved-empty" class="muted" hidden>No unfinished games.</p>
-    <p id="saved-limit" class="muted small"></p>
+    <p id="saved-empty" class="muted" hidden>No active games.</p>
   </main>
 
   <!-- GAME -->
@@ -108,15 +105,6 @@
     <label class="toggle"><input type="checkbox" data-setting="showMistakes"> Show mistakes in red</label>
     <label class="toggle"><input type="checkbox" data-setting="highlight"> Highlight row, column, box and same numbers</label>
     <label class="toggle"><input type="checkbox" data-setting="autoNotes"> Remove notes automatically</label>
-    <label class="setting-row">
-      <span>Keep unfinished games</span>
-      <select id="max-saved">
-        <option value="10">10</option>
-        <option value="25">25</option>
-        <option value="50">50</option>
-        <option value="100">100</option>
-      </select>
-    </label>
     <p class="muted small">Everything runs on this device. Progress is saved in this browser only.</p>
     <div class="backup">
       <button id="btn-backup" class="pill">Download backup</button>

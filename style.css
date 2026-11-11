@@ -116,7 +116,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .menu-title { font-weight: 650; font-size: 18px; }
 .menu .bar { width: 100%; }
 
-/* unfinished games */
+/* active games */
 .saved-list { display: flex; flex-direction: column; gap: 10px; }
 .saved-row {
   position: relative; border: 1px solid var(--line); border-radius: 14px;
@@ -216,10 +216,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .backup .pill { font-size: 14px; padding: 8px 16px; cursor: pointer; }
 .toggle { display: flex; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .setting-row { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line); }
-.setting-row select {
-  font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line);
-  border-radius: 10px; padding: 6px 10px;
-}
 .seg { display: inline-grid; grid-auto-flow: column; background: var(--peer); border-radius: 10px; padding: 3px; gap: 3px; }
 .seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; font-size: 14px; font-weight: 550; color: var(--muted); }
 .seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }

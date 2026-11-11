@@ -11,11 +11,11 @@
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage full or blocked */ } };
 
   const store = Object.assign({ games: {}, solved: {} }, load(KEY, {}));
-  // maxSaved: unfinished games kept; the least recently played are dropped beyond it. A saved game is ~1-4 KB
-  // (up to ~13 KB with full notes and 200 undo steps), so even 100 fits easily in the ~5 MB localStorage gives us.
-  store.settings = Object.assign({ showMistakes: true, highlight: true, autoNotes: true, theme: 'system', maxSaved: 50 }, store.settings);
+  store.settings = Object.assign({ showMistakes: true, highlight: true, autoNotes: true, theme: 'light' }, store.settings);
   for (const d of DIFFS) store.solved[d] = store.solved[d] || 0;
-  const MAX_UNDO = 200;
+  // Saved data must stay under 100 KB in the worst case (checked in CI by tools/check-size.js):
+  // MAX_SAVED games (least recently played dropped first), each keeping its last MAX_UNDO cell changes.
+  const MAX_SAVED = 20, MAX_UNDO = 150;
   const persist = () => save(KEY, store);
   const ago = (t) => {
     const m = Math.round((Date.now() - t) / 60000);
@@ -32,7 +32,7 @@
     return Math.round((ok / (81 - given)) * 100);
   };
   const savedGames = () => Object.values(store.games).sort((a, b) => b.updated - a.updated);
-  const prune = () => { for (const g of savedGames().slice(store.settings.maxSaved)) delete store.games[g.id]; };
+  const prune = () => { for (const g of savedGames().slice(MAX_SAVED)) delete store.games[g.id]; };
 
   const fmt = (ms) => {
     const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
@@ -76,7 +76,7 @@
   function commit(changes) {
     if (!changes.length) return;
     game.history.push(changes);
-    if (game.history.length > MAX_UNDO) game.history.shift();
+    while (game.history.reduce((n, c) => n + c.length, 0) > MAX_UNDO) game.history.shift();
     afterMove();
   }
   function snapshot(changes, j) { changes.push({ i: j, v: game.values[j], n: game.notes[j] }); }
@@ -253,19 +253,17 @@
   function renderHome() {
     const saved = savedGames(), last = saved[0];
     $('#btn-continue').hidden = !last;
-    $('#btn-saved').hidden = !saved.length;
+    $('#btn-saved').hidden = saved.length < 2;
     $('#btn-new').classList.toggle('primary', !last);
     if (last) {
       $('#continue-info').textContent = LABEL[last.difficulty] + ' · ' + filledPct(last) + '% · ' + fmt(last.elapsed);
       $('#continue-bar').style.width = filledPct(last) + '%';
-      $('#saved-info').textContent = saved.length === 1 ? '1 unfinished game' : saved.length + ' unfinished games';
     }
   }
 
   function renderSaved() {
     const saved = savedGames();
     $('#saved-empty').hidden = !!saved.length;
-    $('#saved-limit').textContent = 'Up to ' + store.settings.maxSaved + ' are kept; the least recently played go first. Change it in Settings.';
     const frag = document.createDocumentFragment();
     for (const g of saved) {
       const row = document.createElement('div');
@@ -379,15 +377,11 @@
   // ---------- settings ----------
   $('#btn-settings').addEventListener('click', () => {
     document.querySelectorAll('[data-setting]').forEach((cb) => { cb.checked = !!store.settings[cb.dataset.setting]; });
-    $('#max-saved').value = String(store.settings.maxSaved);
     $('#settings').showModal();
   });
   document.querySelectorAll('[data-setting]').forEach((cb) => cb.addEventListener('change', () => {
     store.settings[cb.dataset.setting] = cb.checked; persist();
   }));
-  $('#max-saved').addEventListener('change', (e) => {
-    store.settings.maxSaved = +e.target.value; prune(); persist(); renderHome();
-  });
   $('#settings-close').addEventListener('click', () => $('#settings').close());
 
   // backup / restore (a JSON file the user keeps)
