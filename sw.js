@@ -1,7 +1,7 @@
 // Offline cache. Bump VERSION whenever any file changes so phones pick up the update.
-const VERSION = 'sudoku-v1';
+const VERSION = 'sudoku-v4';
 const FILES = [
-  './', 'index.html', 'style.css', 'app.js', 'sudoku.js', 'levels.js', 'worker.js', 'manifest.webmanifest',
+  './', 'index.html', 'style.css', 'app.js', 'sudoku.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png',
 ];
 self.addEventListener('install', (e) => {

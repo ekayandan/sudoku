@@ -306,9 +306,8 @@
     opts = opts || {};
     const rand = opts.rand || makeRng(opts.seed);
     const attempts = opts.attempts || 200;
-    const deadline = opts.timeLimitMs ? Date.now() + opts.timeLimitMs : Infinity;
     const [lo, hi] = TARGET_GIVENS[difficulty];
-    for (let a = 0; a < attempts && Date.now() < deadline; a++) {
+    for (let a = 0; a < attempts; a++) {
       const solution = fullGrid(rand);
       const minGivens = lo + Math.floor(rand() * (hi - lo + 1));
       const puzzle = carve(solution, rand, minGivens);
@@ -318,36 +317,10 @@
     return null;
   }
 
-  // ---------- mutator ----------
-  // Applies validity-preserving symmetries: digit relabel, row/col swaps within bands,
-  // band/stack swaps, transpose. Difficulty and uniqueness are unchanged.
-  function mutate(puzzle, solution, rand) {
-    rand = rand || Math.random;
-    const P = toArray(puzzle), S = solution ? toArray(solution) : null;
-    const lineMap = () => {
-      const bands = shuffle([0, 1, 2], rand); const out = [];
-      for (const b of bands) for (const r of shuffle([0, 1, 2], rand)) out.push(b * 3 + r);
-      return out;
-    };
-    const rowMap = lineMap(), colMap = lineMap();
-    const digits = [0, ...shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9], rand)];
-    const transpose = rand() < 0.5;
-    const map = (g) => {
-      const out = new Array(81);
-      for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
-        let sr = rowMap[r], sc = colMap[c];
-        if (transpose) { const t = sr; sr = sc; sc = t; }
-        out[r * 9 + c] = digits[g[sr * 9 + sc]];
-      }
-      return out;
-    };
-    return { puzzle: map(P), solution: S ? map(S) : null };
-  }
-
   const api = {
     ROW, COL, BOX, UNITS, PEERS, DIFFICULTIES,
     makeRng, shuffle, toArray, toString,
-    solve, hasUniqueSolution, grade, difficultyOf, generate, mutate, fullGrid,
+    solve, hasUniqueSolution, grade, difficultyOf, generate,
   };
   root.Sudoku = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

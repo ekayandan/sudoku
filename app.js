@@ -1,81 +1,58 @@
 (() => {
   'use strict';
-  const S = self.Sudoku, LEVELS = self.LEVELS;
+  const S = self.Sudoku;
   const DIFFS = S.DIFFICULTIES;
   const LABEL = { easy: 'Easy', medium: 'Medium', hard: 'Hard', expert: 'Expert' };
-  const KEY = 'sudoku.v1', POOL_KEY = 'sudoku.pool.v1', POOL_SIZE = 3;
+  const KEY = 'sudoku';
   const $ = (s) => document.querySelector(s);
 
   // ---------- storage ----------
   const load = (k, def) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? def : v; } catch { return def; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage full or blocked */ } };
 
-  const store = Object.assign({ progress: {}, games: {}, settings: {}, endless: {}, diff: 'easy' }, load(KEY, {}));
-  store.settings = Object.assign({ showMistakes: true, highlight: true, autoNotes: true }, store.settings);
-  for (const d of DIFFS) { store.progress[d] = store.progress[d] || {}; store.endless[d] = store.endless[d] || 0; }
-  if (!DIFFS.includes(store.diff)) store.diff = 'easy';
-  const MAX_SAVED = 40; // oldest untouched games are dropped beyond this
+  const store = Object.assign({ games: {}, solved: {} }, load(KEY, {}));
+  // maxSaved: unfinished games kept; the least recently played are dropped beyond it. A saved game is ~1-4 KB
+  // (up to ~13 KB with full notes and 200 undo steps), so even 100 fits easily in the ~5 MB localStorage gives us.
+  store.settings = Object.assign({ showMistakes: true, highlight: true, autoNotes: true, theme: 'system', maxSaved: 50 }, store.settings);
+  for (const d of DIFFS) store.solved[d] = store.solved[d] || 0;
+  const MAX_UNDO = 200;
   const persist = () => save(KEY, store);
-  const gameId = (mode, d, level) => (mode === 'level' ? 'L-' + d + '-' + level : 'E-' + Date.now().toString(36));
-  const gameLabel = (g) => LABEL[g.difficulty] + (g.level ? ' · Level ' + g.level : ' · Endless');
+  const ago = (t) => {
+    const m = Math.round((Date.now() - t) / 60000);
+    if (m < 1) return 'just now';
+    if (m < 60) return m + ' min ago';
+    const h = Math.round(m / 60);
+    if (h < 24) return h + ' h ago';
+    const d = Math.round(h / 24);
+    return d === 1 ? 'yesterday' : d + ' days ago';
+  };
   const filledPct = (g) => {
     let given = 0, ok = 0;
     for (let i = 0; i < 81; i++) { if (g.puzzle[i] !== '0') given++; else if (g.values[i]) ok++; }
     return Math.round((ok / (81 - given)) * 100);
   };
   const savedGames = () => Object.values(store.games).sort((a, b) => b.updated - a.updated);
-
-  const pool = load(POOL_KEY, {});
-  for (const d of DIFFS) pool[d] = Array.isArray(pool[d]) ? pool[d] : [];
+  const prune = () => { for (const g of savedGames().slice(store.settings.maxSaved)) delete store.games[g.id]; };
 
   const fmt = (ms) => {
     const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
     return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(r).padStart(2, '0');
   };
 
-  // ---------- background generator (keeps a few fresh puzzles ready) ----------
-  let worker = null, workerBusy = false;
-  function refillPool() {
-    if (workerBusy) return;
-    const d = DIFFS.find((x) => pool[x].length < POOL_SIZE);
-    if (!d) return;
-    if (!worker) {
-      try { worker = new Worker('worker.js'); } catch { return; }
-      worker.onmessage = (e) => {
-        workerBusy = false;
-        const r = e.data;
-        if (r && r.p && pool[r.d].length < POOL_SIZE) { pool[r.d].push({ p: r.p, s: r.s }); save(POOL_KEY, pool); }
-        setTimeout(refillPool, 100);
-        renderHome();
-      };
-      worker.onerror = () => { workerBusy = false; worker = null; };
-    }
-    workerBusy = true;
-    worker.postMessage({ d });
-  }
-
-  function mutatedLevel(d) {
-    const base = LEVELS[d][Math.floor(Math.random() * LEVELS[d].length)];
-    const m = S.mutate(base, S.solve(base, 1).solution);
-    return { p: S.toString(m.puzzle), s: S.toString(m.solution), mutated: true };
-  }
-
   // ---------- game state ----------
   let game = null;
   let selected = -1, notesMode = false, screen = 'home';
   const isGiven = (i) => game.puzzle[i] !== '0';
 
-  function newGame(mode, difficulty, level, puzzle, solution, id) {
+  function newGame(difficulty, puzzle, solution, id) {
     game = {
-      id: id || gameId(mode, difficulty, level),
-      mode, difficulty, level, puzzle, solution,
+      id: id || Date.now().toString(36),
+      difficulty, puzzle, solution,
       values: S.toArray(puzzle), notes: new Array(81).fill(0),
       mistakes: 0, hints: 0, elapsed: 0, history: [], done: false, updated: Date.now(),
     };
-    store.games[game.id] = game; store.diff = difficulty;
-    const all = savedGames();
-    for (const g of all.slice(MAX_SAVED)) delete store.games[g.id];
-    persist();
+    store.games[game.id] = game;
+    prune(); persist();
     selected = game.values.findIndex((v) => !v);
     notesMode = false;
     showGame();
@@ -88,24 +65,18 @@
     selected = -1; notesMode = false;
     showGame();
   }
-  function startLevel(d, n) {
-    const id = gameId('level', d, n);
-    if (store.games[id]) return resume(id);
-    const p = LEVELS[d][n - 1];
-    newGame('level', d, n, p, S.toString(S.solve(p, 1).solution));
-  }
-  function startEndless(d) {
-    const item = pool[d].shift() || mutatedLevel(d);
-    save(POOL_KEY, pool);
-    newGame('endless', d, null, item.p, item.s);
-    setTimeout(refillPool, 500);
+  // Generating takes a few ms even for Expert, so it simply runs on tap.
+  function startNew(d) {
+    let g = null;
+    while (!g) g = S.generate(d);
+    newGame(d, S.toString(g.puzzle), S.toString(g.solution));
   }
 
   // ---------- moves ----------
   function commit(changes) {
     if (!changes.length) return;
     game.history.push(changes);
-    if (game.history.length > 500) game.history.shift();
+    if (game.history.length > MAX_UNDO) game.history.shift();
     afterMove();
   }
   function snapshot(changes, j) { changes.push({ i: j, v: game.values[j], n: game.notes[j] }); }
@@ -199,33 +170,15 @@
   function win() {
     game.done = true;
     const d = game.difficulty;
-    if (game.mode === 'level') {
-      const prev = store.progress[d][game.level];
-      if (!prev || game.elapsed < prev.t) store.progress[d][game.level] = { t: Math.round(game.elapsed), m: game.mistakes };
-    } else {
-      store.endless[d]++;
-    }
+    store.solved[d]++;
     delete store.games[game.id]; persist();
     const parts = [fmt(game.elapsed)];
     parts.push(game.mistakes === 1 ? '1 mistake' : game.mistakes + ' mistakes');
     if (game.hints) parts.push(game.hints === 1 ? '1 hint' : game.hints + ' hints');
-    $('#win-stats').textContent = LABEL[d] + (game.level ? ' · Level ' + game.level : ' · Endless') + ' — ' + parts.join(' · ');
-    const nextLevel = game.mode === 'level' ? nextUnsolved(d, game.level) : 0;
-    $('#win-next').textContent = game.mode === 'level' && nextLevel ? 'Level ' + nextLevel : 'New ' + LABEL[d] + ' puzzle';
-    $('#win-next').onclick = () => {
-      $('#win').close();
-      if (game.mode === 'level' && nextLevel) startLevel(d, nextLevel); else startEndless(d);
-    };
+    $('#win-stats').textContent = LABEL[d] + ' — ' + parts.join(' · ');
+    $('#win-next').textContent = 'New ' + LABEL[d] + ' game';
+    $('#win-next').onclick = () => { $('#win').close(); startNew(d); };
     setTimeout(() => $('#win').showModal(), 500);
-  }
-
-  function nextUnsolved(d, after) {
-    const n = LEVELS[d].length;
-    for (let k = 1; k <= n; k++) {
-      const lv = ((after + k - 1) % n) + 1;
-      if (!store.progress[d][lv]) return lv;
-    }
-    return 0;
   }
 
   // ---------- rendering ----------
@@ -288,7 +241,7 @@
       b.classList.toggle('done', left === 0);
       b.querySelector('small').textContent = left;
     });
-    $('#game-name').textContent = gameLabel(game);
+    $('#game-name').textContent = LABEL[game.difficulty];
     $('#mistakes').textContent = game.mistakes + (game.mistakes === 1 ? ' mistake' : ' mistakes');
     $('#mistakes-wrap').hidden = !store.settings.showMistakes;
     $('#timer').textContent = fmt(game.elapsed);
@@ -298,24 +251,22 @@
   }
 
   function renderHome() {
-    const d = store.diff;
-    // tabs
-    const tabs = $('#diff-tabs');
-    if (!tabs.children.length) {
-      for (const x of DIFFS) {
-        const b = document.createElement('button');
-        b.setAttribute('role', 'tab'); b.textContent = LABEL[x]; b.dataset.d = x;
-        b.addEventListener('click', () => { store.diff = x; persist(); renderHome(); });
-        tabs.appendChild(b);
-      }
+    const saved = savedGames(), last = saved[0];
+    $('#btn-continue').hidden = !last;
+    $('#btn-saved').hidden = !saved.length;
+    $('#btn-new').classList.toggle('primary', !last);
+    if (last) {
+      $('#continue-info').textContent = LABEL[last.difficulty] + ' · ' + filledPct(last) + '% · ' + fmt(last.elapsed);
+      $('#continue-bar').style.width = filledPct(last) + '%';
+      $('#saved-info').textContent = saved.length === 1 ? '1 unfinished game' : saved.length + ' unfinished games';
     }
-    for (const b of tabs.children) b.setAttribute('aria-selected', String(b.dataset.d === d));
+  }
 
-    // games in progress
+  function renderSaved() {
     const saved = savedGames();
-    $('#saved').hidden = !saved.length;
-    $('#saved-count').textContent = saved.length;
-    const sfrag = document.createDocumentFragment();
+    $('#saved-empty').hidden = !!saved.length;
+    $('#saved-limit').textContent = 'Up to ' + store.settings.maxSaved + ' are kept; the least recently played go first. Change it in Settings.';
+    const frag = document.createDocumentFragment();
     for (const g of saved) {
       const row = document.createElement('div');
       row.className = 'saved-row';
@@ -323,59 +274,65 @@
       open.className = 'saved-open';
       open.innerHTML = '<span class="saved-name"></span><span class="muted small"></span>' +
         '<span class="bar"><i style="width:' + filledPct(g) + '%"></i></span>';
-      open.querySelector('.saved-name').textContent = gameLabel(g);
-      open.querySelector('.muted').textContent = filledPct(g) + '% · ' + fmt(g.elapsed);
+      open.querySelector('.saved-name').textContent = LABEL[g.difficulty];
+      open.querySelector('.muted').textContent = filledPct(g) + '% · ' + fmt(g.elapsed) + ' · ' + ago(g.updated);
       open.addEventListener('click', () => resume(g.id));
       const del = document.createElement('button');
       del.className = 'icon-btn saved-del'; del.setAttribute('aria-label', 'Delete saved game'); del.textContent = '×';
-      del.addEventListener('click', () => confirmDialog('Delete this saved game (' + gameLabel(g) + ')?', () => {
-        delete store.games[g.id]; persist(); renderHome();
+      del.addEventListener('click', () => confirmDialog('Delete this ' + LABEL[g.difficulty] + ' game (' + filledPct(g) + '% done)?', () => {
+        delete store.games[g.id]; persist(); renderSaved();
       }));
       row.append(open, del);
-      sfrag.appendChild(row);
+      frag.appendChild(row);
     }
-    $('#saved-list').replaceChildren(sfrag);
+    $('#saved-list').replaceChildren(frag);
+  }
 
-    // endless
-    const solvedEndless = store.endless[d];
-    $('#endless-info').textContent = 'A new ' + LABEL[d].toLowerCase() + ' puzzle, made on your device' +
-      (solvedEndless ? ' · ' + solvedEndless + ' solved' : '');
-
-    // levels
-    const list = LEVELS[d], prog = store.progress[d];
-    const solved = Object.keys(prog).length;
-    $('#levels-count').textContent = solved + ' / ' + list.length + ' solved';
-    const next = nextUnsolved(d, 0);
-    const wrap = $('#levels');
+  function openNewGame() {
     const frag = document.createDocumentFragment();
-    list.forEach((_, k) => {
-      const n = k + 1, p = prog[n], started = store.games[gameId('level', d, n)];
+    for (const d of DIFFS) {
       const b = document.createElement('button');
-      b.className = 'level' + (p ? ' solved' : '') + (started ? ' started' : '') + (n === next ? ' next' : '');
-      b.innerHTML = n + (started ? '<small>' + filledPct(started) + '%</small>' : p ? '<small>' + fmt(p.t) + '</small>' : '');
-      b.setAttribute('aria-label', 'Level ' + n + (started ? ', in progress' : p ? ', solved' : ''));
-      b.addEventListener('click', () => startLevel(d, n));
+      b.className = 'card';
+      b.innerHTML = '<b></b><span class="muted small"></span>';
+      b.querySelector('b').textContent = LABEL[d];
+      b.querySelector('span').textContent = store.solved[d] ? store.solved[d] + ' solved' : '';
+      b.addEventListener('click', () => { $('#newgame').close(); startNew(d); });
       frag.appendChild(b);
-    });
-    wrap.replaceChildren(frag);
+    }
+    $('#diff-list').replaceChildren(frag);
+    $('#newgame').showModal();
   }
 
   // ---------- screens & navigation ----------
+  // home is the root; "saved" and "game" are pushed on the browser history so the system back button works.
+  const SCREENS = ['home', 'saved', 'game'];
+  function setScreen(name) {
+    screen = name;
+    for (const n of SCREENS) $('#' + n).hidden = n !== name;
+    if (name === 'home') renderHome();
+    if (name === 'saved') renderSaved();
+    window.scrollTo(0, 0);
+  }
+  function go(name) {
+    if (history.state && history.state.screen === name) return setScreen(name);
+    history.pushState({ screen: name }, '');
+    setScreen(name);
+  }
+  function goBack() {
+    if (history.state && history.state.screen) history.back(); else setScreen('home');
+  }
   function showGame() {
-    screen = 'game';
-    $('#home').hidden = true; $('#game').hidden = false;
-    if (!history.state || !history.state.game) history.pushState({ game: true }, '');
+    go('game');
     if (selected < 0 || selected > 80) selected = game.values.findIndex((v) => !v);
     lastTick = performance.now();
     renderGame();
   }
-  function showHome() {
-    screen = 'home';
-    $('#game').hidden = true; $('#home').hidden = false;
-    persist();
-    renderHome();
-  }
-  window.addEventListener('popstate', () => { if (screen === 'game') showHome(); });
+  window.addEventListener('popstate', (e) => {
+    const name = (e.state && e.state.screen) || 'home';
+    if (name === 'game' && !game) return setScreen('home');
+    setScreen(name);
+    if (name === 'game') { lastTick = performance.now(); renderGame(); }
+  });
 
   function confirmDialog(text, yes) {
     $('#confirm-text').textContent = text;
@@ -383,30 +340,76 @@
     $('#confirm').showModal();
   }
 
-  $('#btn-back').addEventListener('click', () => { if (history.state && history.state.game) history.back(); else showHome(); });
-  $('#btn-endless').addEventListener('click', () => startEndless(store.diff));
+  $('#btn-back').addEventListener('click', goBack);
+  $('#btn-saved-back').addEventListener('click', goBack);
+  $('#btn-continue').addEventListener('click', () => { const g = savedGames()[0]; if (g) resume(g.id); });
+  $('#btn-saved').addEventListener('click', () => go('saved'));
+  $('#btn-new').addEventListener('click', openNewGame);
+  $('#newgame-cancel').addEventListener('click', () => $('#newgame').close());
   $('#btn-restart').addEventListener('click', () => {
     if (!game || game.done) return;
     confirmDialog('Restart this puzzle from the beginning?', () => {
-      newGame(game.mode, game.difficulty, game.level, game.puzzle, game.solution, game.id);
+      newGame(game.difficulty, game.puzzle, game.solution, game.id);
     });
   });
   $('#btn-undo').addEventListener('click', undo);
   $('#btn-erase').addEventListener('click', () => setValue(selected, 0));
   $('#btn-notes').addEventListener('click', () => { notesMode = !notesMode; renderGame(); });
   $('#btn-hint').addEventListener('click', hint);
-  $('#win-home').addEventListener('click', () => { $('#win').close(); $('#btn-back').click(); });
+  $('#win-home').addEventListener('click', () => { $('#win').close(); history.replaceState(null, ''); setScreen('home'); });
   $('#confirm-no').addEventListener('click', () => $('#confirm').close());
 
-  // settings
+  // ---------- theme ----------
+  // 'system' follows the device's light/dark mode; others force a scheme (see the [data-theme] blocks in style.css).
+  const THEMES = { system: null, light: '#f8fafc', dark: '#0f172a' }; // value: browser bar color
+  const themeMetas = [...document.querySelectorAll('meta[name="theme-color"]')];
+  themeMetas.forEach((m) => { m.dataset.auto = m.content; });
+  function applyTheme() {
+    const t = store.settings.theme, root = document.documentElement;
+    if (t === 'system') delete root.dataset.theme; else root.dataset.theme = t;
+    themeMetas.forEach((m) => { m.content = THEMES[t] || m.dataset.auto; });
+    try { localStorage.setItem('sudoku.theme', t); } catch { /* ignore */ }
+    document.querySelectorAll('[data-theme-opt]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themeOpt === t)));
+  }
+  document.querySelectorAll('[data-theme-opt]').forEach((b) => b.addEventListener('click', () => {
+    store.settings.theme = b.dataset.themeOpt; persist(); applyTheme();
+  }));
+  applyTheme();
+
+  // ---------- settings ----------
   $('#btn-settings').addEventListener('click', () => {
     document.querySelectorAll('[data-setting]').forEach((cb) => { cb.checked = !!store.settings[cb.dataset.setting]; });
+    $('#max-saved').value = String(store.settings.maxSaved);
     $('#settings').showModal();
   });
   document.querySelectorAll('[data-setting]').forEach((cb) => cb.addEventListener('change', () => {
     store.settings[cb.dataset.setting] = cb.checked; persist();
   }));
+  $('#max-saved').addEventListener('change', (e) => {
+    store.settings.maxSaved = +e.target.value; prune(); persist(); renderHome();
+  });
   $('#settings-close').addEventListener('click', () => $('#settings').close());
+
+  // backup / restore (a JSON file the user keeps)
+  $('#btn-backup').addEventListener('click', () => {
+    persist();
+    const data = JSON.stringify({ app: 'sudoku', store });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+    a.download = 'sudoku-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  $('#restore-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    let backup = null;
+    try { backup = JSON.parse(await file.text()).store; } catch { /* not JSON */ }
+    $('#settings').close();
+    if (!backup || !backup.games) return confirmDialog('That file is not a sudoku backup.', () => {});
+    confirmDialog('Replace the progress on this device with this backup?', () => { save(KEY, backup); location.reload(); });
+  });
   document.querySelectorAll('dialog').forEach((dl) => dl.addEventListener('click', (e) => { if (e.target === dl) dl.close(); }));
 
   // keyboard
@@ -417,18 +420,12 @@
     if (k === 'Backspace' || k === 'Delete' || k === '0') { setValue(selected, 0); return; }
     if ((k === 'z' || k === 'Z') && (e.metaKey || e.ctrlKey)) { e.preventDefault(); undo(); return; }
     if (k === 'n' || k === 'N') { notesMode = !notesMode; renderGame(); return; }
-    if (k === 'Escape') { $('#btn-back').click(); return; }
+    if (k === 'Escape') { goBack(); return; }
     const mv = { ArrowUp: -9, ArrowDown: 9, ArrowLeft: -1, ArrowRight: 1 }[k];
     if (mv) {
       e.preventDefault();
-      if (selected < 0) selected = 0;
-      else {
-        const r = S.ROW[selected], c = S.COL[selected];
-        if (mv === -1) selected = r * 9 + ((c + 8) % 9);
-        else if (mv === 1) selected = r * 9 + ((c + 1) % 9);
-        else if (mv === -9) selected = ((r + 8) % 9) * 9 + c;
-        else selected = ((r + 1) % 9) * 9 + c;
-      }
+      const r = S.ROW[Math.max(selected, 0)], c = S.COL[Math.max(selected, 0)];
+      selected = Math.abs(mv) === 1 ? r * 9 + (c + mv + 9) % 9 : ((r + mv / 9 + 9) % 9) * 9 + c;
       renderBoard();
     }
   });
@@ -447,25 +444,11 @@
   document.addEventListener('visibilitychange', () => { lastTick = performance.now(); if (document.hidden) persist(); });
 
   // ---------- install & offline ----------
-  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  if (isIOS && !standalone) $('#ios-hint').hidden = false;
-  let installEvent = null;
-  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvent = e; $('#btn-install').hidden = false; });
-  $('#btn-install').addEventListener('click', async () => {
-    if (!installEvent) return;
-    installEvent.prompt();
-    await installEvent.userChoice.catch(() => {});
-    installEvent = null; $('#btn-install').hidden = true;
-  });
-  window.addEventListener('appinstalled', () => { $('#btn-install').hidden = true; });
-
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-    navigator.serviceWorker.ready.then(() => { $('#offline-status').textContent = '✓ Saved on this device — works offline'; });
-  }
+  $('#ios-hint').hidden = !isIOS || navigator.standalone === true;
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
   // ---------- boot ----------
-  renderHome();
-  setTimeout(refillPool, 1500);
+  history.replaceState(null, '');
+  setScreen('home');
 })();

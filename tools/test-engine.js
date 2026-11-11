@@ -10,10 +10,6 @@ for (const d of S.DIFFICULTIES) {
     if (!S.hasUniqueSolution(g.puzzle)) throw 'not unique';
     const sol = S.solve(g.puzzle).solution;
     if (S.toString(sol) !== S.toString(g.solution)) throw 'wrong solution';
-    const m = S.mutate(g.puzzle, g.solution, rand);
-    if (!S.hasUniqueSolution(m.puzzle)) throw 'mutant not unique';
-    if (S.toString(S.solve(m.puzzle).solution) !== S.toString(m.solution)) throw 'mutant solution';
-    if (S.difficultyOf(S.grade(m.puzzle)) !== d) throw 'mutant difficulty changed';
     ok++;
   }
   console.log(d.padEnd(7), 'tries', tries, 'ms/puzzle', ((Date.now() - t) / n) | 0, 'givens', givens.join(','));

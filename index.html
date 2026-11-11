@@ -7,6 +7,7 @@
   <meta name="description" content="Unlimited sudoku that works offline on any device.">
   <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+  <script>try{var t=localStorage.getItem('sudoku.theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -19,41 +20,42 @@
 <body>
   <!-- HOME -->
   <main id="home" class="screen">
-    <header class="topbar">
-      <h1>Sudoku</h1>
-      <button class="icon-btn" id="btn-settings" aria-label="Settings">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    <header class="topbar"><h1>Sudoku</h1></header>
+
+    <nav class="menu">
+      <button id="btn-continue" class="card primary" hidden>
+        <span class="menu-title">Continue</span>
+        <span id="continue-info" class="small"></span>
+        <span class="bar"><i id="continue-bar"></i></span>
       </button>
-    </header>
-
-    <section id="saved" hidden>
-      <div class="section-head">
-        <h2>In progress</h2>
-        <span class="muted"><span id="saved-count"></span> saved</span>
-      </div>
-      <div id="saved-list" class="saved-list"></div>
-    </section>
-
-    <div class="tabs" role="tablist" id="diff-tabs"></div>
-
-    <button id="btn-endless" class="card endless">
-      <span class="endless-title">∞ Endless</span>
-      <span id="endless-info" class="muted"></span>
-    </button>
-
-    <section>
-      <div class="section-head">
-        <h2>Levels</h2>
-        <span id="levels-count" class="muted"></span>
-      </div>
-      <div id="levels" class="levels"></div>
-    </section>
+      <button id="btn-saved" class="card" hidden>
+        <span class="menu-title">Continue…</span>
+        <span id="saved-info" class="muted small"></span>
+      </button>
+      <button id="btn-new" class="card">
+        <span class="menu-title">New game</span>
+        <span class="muted small">Easy, Medium, Hard or Expert</span>
+      </button>
+      <button id="btn-settings" class="card">
+        <span class="menu-title">Settings</span>
+      </button>
+    </nav>
 
     <footer class="foot">
-      <button id="btn-install" class="pill" hidden>Install app</button>
-      <p id="ios-hint" class="muted small" hidden>To keep it forever on iPhone: tap <b>Share</b> → <b>Add to Home Screen</b>.</p>
-      <p id="offline-status" class="muted small"></p>
+      <p id="ios-hint" class="muted small" hidden>To access it offline on iPhone: tap <b>Share</b> → <b>Add to Home Screen</b>.</p>
     </footer>
+  </main>
+
+  <!-- UNFINISHED GAMES -->
+  <main id="saved" class="screen" hidden>
+    <header class="topbar">
+      <button class="icon-btn" id="btn-saved-back" aria-label="Back"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <h2>Unfinished games</h2>
+      <span class="spacer"></span>
+    </header>
+    <div id="saved-list" class="saved-list"></div>
+    <p id="saved-empty" class="muted" hidden>No unfinished games.</p>
+    <p id="saved-limit" class="muted small"></p>
   </main>
 
   <!-- GAME -->
@@ -95,12 +97,42 @@
 
   <dialog id="settings" class="modal">
     <h2>Settings</h2>
+    <div class="setting-row">
+      <span>Appearance</span>
+      <div class="seg" id="theme-seg">
+        <button data-theme-opt="system">Auto</button>
+        <button data-theme-opt="light">Light</button>
+        <button data-theme-opt="dark">Dark</button>
+      </div>
+    </div>
     <label class="toggle"><input type="checkbox" data-setting="showMistakes"> Show mistakes in red</label>
     <label class="toggle"><input type="checkbox" data-setting="highlight"> Highlight row, column, box and same numbers</label>
     <label class="toggle"><input type="checkbox" data-setting="autoNotes"> Remove notes automatically</label>
+    <label class="setting-row">
+      <span>Keep unfinished games</span>
+      <select id="max-saved">
+        <option value="10">10</option>
+        <option value="25">25</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select>
+    </label>
     <p class="muted small">Everything runs on this device. Progress is saved in this browser only.</p>
+    <div class="backup">
+      <button id="btn-backup" class="pill">Download backup</button>
+      <label class="pill" for="restore-file">Restore backup</label>
+      <input type="file" id="restore-file" accept=".json,application/json" hidden>
+    </div>
     <div class="modal-actions">
       <button id="settings-close" class="pill primary">Done</button>
+    </div>
+  </dialog>
+
+  <dialog id="newgame" class="modal">
+    <h2>New game</h2>
+    <div id="diff-list" class="diff-list"></div>
+    <div class="modal-actions">
+      <button id="newgame-cancel" class="pill">Cancel</button>
     </div>
   </dialog>
 
@@ -113,7 +145,6 @@
   </dialog>
 
   <script src="sudoku.js"></script>
-  <script src="levels.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
