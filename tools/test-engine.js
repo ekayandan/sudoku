@@ -1,4 +1,4 @@
-const S = require('../sudoku.js');
+const S = require('../games/sudoku/sudoku.js');
 let ok = 0;
 for (const d of S.DIFFICULTIES) {
   const t = Date.now(); let n = 0, tries = 0; const givens = [];

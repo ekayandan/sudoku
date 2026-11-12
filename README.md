@@ -1,32 +1,25 @@
-# Sudoku
+# Pocket Games
 
-> Becoming a single offline app with several timeless games. See [docs/DESIGN.md](docs/DESIGN.md).
+Timeless games in one small app that runs fully in the browser. Visit once, then it works offline (installable as an app).
+No ads, no accounts, no tracking. Open it and you're back where you left off.
 
-Unlimited sudoku that runs fully in the browser. Visit once, then it works offline (installable as an app).
+Games: Sudoku · coming: Solo Test, Solitaire, Mines, Blocks, Maze Chase, Pinball.
 
-- **Home**: Continue (last game), Continue… (all active games, shown when there are 2+), New game (Easy / Medium / Hard / Expert), Settings.
-- **New games** are generated on the device when you tap (a few ms, even Expert).
-- **Saved games**: every game you start is saved, up to 20; the least recently played is dropped beyond that. Each keeps its last 150 undo changes, so saved data stays under 100 KB.
-- **Appearance**: Auto (follows the device's light/dark mode), Light or Dark.
-- Notes (pencil marks), undo, erase, hint, mistakes in red, timer, highlights, keyboard (1-9, arrows, Backspace, N, Ctrl/Cmd+Z), backup/restore to a file.
-- No server, no accounts, no tracking. Progress lives in the browser's localStorage.
-
-## How difficulty is graded
-
-`sudoku.js` solves each puzzle like a person would and records the hardest technique needed:
-singles → Easy (36+ clues) / Medium; locked candidates, pairs, triples → Hard; X-Wing, Swordfish or beyond → Expert.
-Every puzzle has exactly one solution.
+## Docs
+- [docs/DESIGN.md](docs/DESIGN.md): what we're building and why: requirements, budgets, architecture
+- [docs/ADDING-A-GAME.md](docs/ADDING-A-GAME.md): the game module contract and rules
+- [docs/CONTROLS.md](docs/CONTROLS.md): the shared control layer (touch, mouse, keyboard)
 
 ## Files
 
-| File | What |
+| Path | What |
 |---|---|
-| `index.html`, `style.css`, `app.js` | the app |
-| `sudoku.js` | engine: solver, grader, generator (works in Node too) |
-| `sw.js` | offline cache. **Bump `VERSION` on every change** so phones update |
-| `tools/test-engine.js` | `node tools/test-engine.js` checks uniqueness, solutions |
-| `tools/check-size.js` | `node tools/check-size.js` fails if the app download or worst-case saved data is over 100 KB (runs in CI) |
-| `tools/make-icons.py` | redraws the icons |
+| `index.html`, `style.css`, `shell.js` | the app shell: home, settings, routing, lifecycle, backup |
+| `shared/input.js` | control layer: the only code that reads keyboard/touch/mouse |
+| `games/registry.js` | list of games (one line per game) |
+| `games/<id>/` | one game: `game.js`, `icon.svg`, engine, styles |
+| `sw.js` | offline cache: pre-caches every registered game |
+| `tools/` | CI checks (`check-games.js`, `check-size.js`), tests (`test-*.js`), worst-case saves (`saves/`), input playground |
 
 ## Run locally
 
@@ -34,9 +27,14 @@ Every puzzle has exactly one solution.
 python3 -m http.server 8742
 ```
 
-Then open http://localhost:8742. Offline mode needs `localhost` or HTTPS.
+Open http://localhost:8742. Offline mode needs `localhost` or HTTPS.
+
+## Checks (run in CI)
+
+```bash
+node tools/check-games.js && node tools/check-size.js && for t in tools/test-*.js; do node $t; done
+```
 
 ## Put it online
 
-Any static host works (GitHub Pages, Netlify, Cloudflare Pages). It needs HTTPS for offline mode.
-On iPhone, open it in Safari and use Share → Add to Home Screen to access it offline. Settings has Download backup and Restore backup for progress.
+GitHub Pages serves `main`. Any static HTTPS host works. On iPhone: Safari → Share → Add to Home Screen.

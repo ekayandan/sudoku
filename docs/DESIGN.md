@@ -1,6 +1,6 @@
 # Design: one offline app, a handful of timeless games
 
-Status: draft · Owner: Enver · Last updated: 2026-11-12
+Status: accepted · implementation: see docs/ADDING-A-GAME.md, docs/CONTROLS.md · Owner: Enver · Last updated: 2026-11-12
 
 ## 1. Motto
 
@@ -81,8 +81,8 @@ index.html ─ shell (home, settings, routing, lifecycle, backup)
              ├─ shared/  input (control layer), storage, theme, audio, haptics, rng, timer, ui
              │
              └─ games/<id>/  game.js (module), engine code, styles
-sw.js        ─ pre-caches everything, VERSION bumped on every change
-tools/       ─ tests, size check, input-boundary check, icon generation
+sw.js        ─ pre-caches every game in games/registry.js; serves from cache, refreshes in the background
+tools/       ─ tests, size check (check-size.js), game/input-boundary check (check-games.js), input playground
 ```
 
 ### 5.1 Shell
@@ -240,7 +240,7 @@ Pinball: Z / Left Shift = left flipper, / or M or Right Shift = right flipper, S
   so help screens and hints are always correct without game code knowing about devices.
 
 ### 6.7 Enforced boundary
-CI runs `tools/check-input-boundary.js`, which fails if any file under `games/` adds key, pointer, touch,
+CI runs `tools/check-games.js`, which fails if any file under `games/` adds key, pointer, touch,
 mouse or gamepad listeners or reads `navigator.getGamepads`. Input code lives in `shared/input/` only.
 
 ### 6.8 Supported input matrix
@@ -280,7 +280,7 @@ Restore validates before replacing anything.
 ## 8. Quality
 
 - Engines (generators, solvers, rules, physics) are pure modules with Node tests in `tools/`, like `sudoku.js` today.
-- CI: engine tests, size check, input-boundary check.
+- CI: `tools/check-games.js` (registry, files, input/storage boundaries), `tools/check-size.js` (budgets, worst-case saves from `tools/saves/<id>.js`), every `tools/test-*.js`.
 - Manual release checklist: iOS Safari home-screen app in airplane mode, Android Chrome, desktop keyboard-only play.
 
 ## 9. Names, art, licensing
@@ -301,5 +301,5 @@ Restore validates before replacing anything.
 5. **Later:** gamepad adapter, control remapping, Solitaire variants (FreeCell, Spider).
 
 ## 11. Open questions
-- App name, and whether this repo gets renamed (e.g. from `sudoku` to the app name).
+- App name (working title: Pocket Games), and whether this repo gets renamed from `sudoku`.
 - Final game names (the titles above are working titles).

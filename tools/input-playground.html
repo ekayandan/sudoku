@@ -1,0 +1,42 @@
+<!doctype html>
+<!-- Dev-only page to try the control layer on a phone or desktop: python3 -m http.server, open /tools/input-playground.html -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Input playground</title><link rel="stylesheet" href="../style.css">
+<style>body{height:100%}#root{height:100%}.stage{flex:1;position:relative;display:grid;place-items:center;font:14px/1.5 monospace;white-space:pre;padding:12px}
+.bar{display:flex;gap:6px;padding:8px;flex-wrap:wrap}.bar button{padding:6px 10px}</style></head>
+<body><div id="root" class="game-root">
+  <div class="bar" id="bar"></div>
+  <div class="stage" id="stage"></div>
+</div>
+<script type="module">
+import { createInput } from '../shared/input.js';
+const root = document.getElementById('root');
+const decl = {
+  model: 'action', stage: '.stage',
+  actions: [
+    { id: 'left', kind: 'button', repeat: { delay: 170, rate: 50 } }, { id: 'right', kind: 'button', repeat: { delay: 170, rate: 50 } },
+    { id: 'a', kind: 'button' }, { id: 'b', kind: 'button' }, { id: 'move', kind: 'dir4', latch: true }, { id: 'pause', kind: 'button' },
+  ],
+  keys: { z: 'a', x: 'b', ' ': 'a', q: 'left', e: 'right' },
+  touch: {
+    gestures: { tap: 'a', swipeDown: 'b', stepLeft: 'left', stepRight: 'right', step: 30 },
+    console: { dpad: 'move', a: 'a', b: 'b' },
+    halves: { left: { stick: 'move' }, right: { button: 'a', swipeUp: 'b' } },
+  },
+};
+const input = window.input = createInput({ root, decl, onSystem: (w) => log.push('system:' + w) });
+const log = window.log = [];
+const counts = window.counts = { left: 0, right: 0, a: 0, b: 0, pause: 0 };
+document.getElementById('bar').append(...input.schemes.map((s) => { const b = document.createElement('button'); b.textContent = s; b.onclick = () => input.setScheme(s); return b; }));
+const stage = document.getElementById('stage');
+function tick() {
+  input.update();
+  for (const k of Object.keys(counts)) if (input.pressed(k)) counts[k]++;
+  const pd = input.pressedDir('move'); if (pd) log.push('dir:' + pd);
+  stage.textContent = 'scheme: ' + input.scheme + '   device: ' + input.device + '\n' +
+    Object.entries(counts).map(([k, v]) => k + ' pressed ' + v + (input.held(k) ? ' (held)' : '')).join('\n') +
+    '\nmove dir: ' + input.dir('move') + '   axis: ' + JSON.stringify(input.axis('move')) + '\nlast: ' + log.slice(-4).join(' ');
+  requestAnimationFrame(tick);
+}
+tick();
+</script></body></html>

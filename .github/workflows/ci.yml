@@ -8,5 +8,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: node tools/test-engine.js
+      - run: node tools/check-games.js
       - run: node tools/check-size.js
+      - run: for t in tools/test-*.js; do echo "== $t"; node "$t" || exit 1; done
