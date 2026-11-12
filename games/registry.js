@@ -9,7 +9,7 @@ self.GAMES = [
   { id: 'chess', name: 'Chess', blurb: 'Play the computer, beginner to master', files: ['game.js', 'chess.js', 'vendor/chessground.js', 'vendor/chessground.base.css', 'vendor/cburnett.css', 'style.css', 'engine/stockfish-19-lite-single.js', 'engine/stockfish-19-lite-single.wasm'] },
   { id: 'mines', name: 'Mines', blurb: 'Clear the field by logic, no guessing', files: ['game.js', 'engine.js', 'style.css'] },
   { id: 'solitaire', name: 'Solitaire', blurb: 'Klondike, every deal winnable', files: ['game.js', 'engine.js', 'worker.js', 'style.css'] },
-  { id: 'pinball', name: 'Pinball', blurb: 'Flippers, bumpers and a deep-sea table', files: ['game.js', 'table.js', 'style.css'] },
+  { id: 'pinball', name: 'Pinball', blurb: '3D tables: space, synthwave and the deep sea', files: ['game.js', 'engine.js', 'tables/base.js', 'tables/deep-current.js', 'tables/neon-drive.js', 'tables/starfall.js', 'art.js', 'render3d.js', 'vendor/three.module.min.js', 'vendor/EffectComposer.js', 'vendor/RenderPass.js', 'vendor/UnrealBloomPass.js', 'vendor/OutputPass.js', 'vendor/ShaderPass.js', 'vendor/MaskPass.js', 'vendor/Pass.js', 'vendor/CopyShader.js', 'vendor/LuminosityHighPassShader.js', 'vendor/OutputShader.js', 'vendor/RoomEnvironment.js', 'style.css'] },
   { id: 'solo-test', name: 'Solo Test', blurb: 'Jump pegs until one is left', files: ['game.js', 'engine.js', 'worker.js', 'style.css'] },
   { id: 'sudoku', name: 'Sudoku', blurb: 'Numbers 1 to 9, once each', files: ['game.js', 'sudoku.js', 'style.css'] },
 ];

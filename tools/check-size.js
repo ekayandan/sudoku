@@ -7,7 +7,7 @@ const BUDGET = {
   appHard: 3 * KB * KB, appTarget: 1 * KB * KB,  // everything a browser can download
   shell: 100 * KB,                                // shell + shared code (no icons, no games)
   game: 150 * KB,                                 // each games/<id>/ folder (without a bundled engine/, below)
-  engine: { chess: 2.5 * KB * KB },               // games/<id>/engine/: third-party engine binaries (Stockfish WASM)
+  engine: { chess: 2.5 * KB * KB, pinball: 800 * KB }, // third-party builds: chess engine/ (Stockfish WASM), pinball vendor/ (three.js)
   savePerGame: 100 * KB, saveTotal: 1 * KB * KB,  // characters in localStorage, worst case
 };
 let failed = false;
@@ -31,7 +31,7 @@ global.self = global; require(path.join(ROOT, 'games/registry.js'));
 let saveTotal = 0;
 for (const g of self.GAMES) {
   const dir = path.join(ROOT, 'games', g.id);
-  const engineDir = path.join(dir, 'engine') + path.sep, files = walk(dir);
+  const engineDir = path.join(dir, g.id === 'pinball' ? 'vendor' : 'engine') + path.sep, files = walk(dir);
   report('game ' + g.id, size(files.filter((f) => !BUDGET.engine[g.id] || !f.startsWith(engineDir))), BUDGET.game);
   if (BUDGET.engine[g.id]) report('engine ' + g.id, size(files.filter((f) => f.startsWith(engineDir))), BUDGET.engine[g.id]);
   const worst = path.join(__dirname, 'saves', g.id + '.js');

@@ -3,7 +3,7 @@
 Timeless games in one small app that runs fully in the browser. Visit once, then it works offline (installable as an app).
 No ads, no accounts, no tracking. Open it and you're back where you left off.
 
-Games: Sudoku · coming: Solo Test, Solitaire, Mines, Blocks, Maze Chase, Pinball.
+Games: Sudoku, Solo Test, Solitaire, Mines, Chess, Pinball (3D: Starfall, Neon Drive, Deep Current).
 
 ## License
 

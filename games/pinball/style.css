@@ -1,13 +1,32 @@
 /* Pinball. Everything is scoped to .game-pinball */
-.game-pinball .pb { width: 100%; height: 100%; min-height: 0; gap: 6px; padding-left: max(6px, env(safe-area-inset-left)); padding-right: max(6px, env(safe-area-inset-right)); padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+.game-pinball .pb { width: 100%; height: 100%; min-height: 0; gap: 0; padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); background: #030308; color: #e5e7eb; }
+.game-pinball .pb .topbar { position: relative; z-index: 3; color: #e5e7eb; }
+.game-pinball .pb .icon-btn { color: #e5e7eb; }
+.game-pinball .pb .muted { color: #9ca3af; }
 .game-pinball .pb-title { flex: 1; text-align: center; line-height: 1.15; }
-.game-pinball .pb-score { font-size: 22px; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.game-pinball .pb-name { font-size: 17px; letter-spacing: .02em; }
 .game-pinball .pb-title .small { font-variant-numeric: tabular-nums; }
-.game-pinball .pb-stage { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-.game-pinball .pb-canvas { display: block; border-radius: 14px; box-shadow: var(--shadow); }
-.game-pinball .pb-over { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; background: rgba(2, 6, 23, .45); border-radius: 14px; }
-.game-pinball .pb-over-card { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 22px 28px; border-radius: 18px; background: var(--surface); color: var(--text); box-shadow: var(--shadow); min-width: 220px; }
+.game-pinball .pb-dmd { display: block; width: calc(100% - 16px); margin: 2px 8px 4px; height: clamp(44px, 7.5vh, 76px); border-radius: 8px; background: #05030a; box-shadow: inset 0 0 0 1px #1f1a2e, 0 0 24px rgba(255, 159, 28, .08); }
+.game-pinball .pb-dmd[hidden], .game-pinball .pb-stage[hidden], .game-pinball .pb-pick[hidden] { display: none; }
+.game-pinball .pb-stage { position: relative; flex: 1; min-height: 0; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; overflow: hidden; }
+.game-pinball .pb-canvas { position: absolute; inset: 0; display: block; }
+.game-pinball .pb-over { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; background: rgba(2, 6, 23, .5); }
+.game-pinball .pb-over-card { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 22px 28px; border-radius: 18px; background: #12101c; color: #f3f4f6; box-shadow: 0 10px 40px rgba(0,0,0,.6); min-width: 220px; border: 1px solid #2a2440; }
 .game-pinball .pb-over-card > b { font-size: 20px; }
 .game-pinball .pb-final { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.game-pinball .pb-new { margin-top: 10px; padding: 12px 22px; border: 0; border-radius: 12px; background: var(--accent); color: var(--accent-text); font-weight: 600; }
-.game-pinball .pb .topbar { position: relative; z-index: 3; }
+.game-pinball .pb-new, .game-pinball .pb-other { margin-top: 8px; padding: 12px 22px; border: 0; border-radius: 12px; background: var(--accent); color: var(--accent-text); font-weight: 600; min-width: 170px; }
+.game-pinball .pb-other { margin-top: 0; background: #2a2440; color: #e5e7eb; }
+.game-pinball .pb-pick { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 12px 16px; }
+.game-pinball .pb-cards { display: grid; gap: 14px; max-width: 720px; margin: 0 auto; }
+@media (min-width: 640px) { .game-pinball .pb-cards { grid-template-columns: repeat(3, 1fr); } }
+.game-pinball .pb-card { display: flex; gap: 14px; align-items: center; text-align: left; padding: 10px; border-radius: 16px; border: 1px solid #241f36; background: linear-gradient(180deg, #14111f, #0b0912); color: inherit; transition: transform .15s, box-shadow .15s, border-color .15s; }
+@media (min-width: 640px) { .game-pinball .pb-card { flex-direction: column; align-items: stretch; } }
+.game-pinball .pb-card.sel, .game-pinball .pb-card:hover { border-color: var(--tc); box-shadow: 0 0 0 1px var(--tc), 0 0 28px color-mix(in srgb, var(--tc) 35%, transparent); }
+.game-pinball .pb-card:active { transform: scale(.98); }
+.game-pinball .pb-thumb { width: 104px; height: auto; border-radius: 10px; flex: none; box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+@media (min-width: 640px) { .game-pinball .pb-thumb { width: 100%; } }
+.game-pinball .pb-card-body { display: flex; flex-direction: column; gap: 4px; }
+.game-pinball .pb-card-body b { font-size: 18px; color: var(--tc); text-shadow: 0 0 12px color-mix(in srgb, var(--tc) 60%, transparent); }
+.game-pinball .pb-card-best { color: #fbbf24; font-variant-numeric: tabular-nums; }
+.game-pinball .pb-card-best em { font-style: normal; color: #34d399; }
+.game-pinball.pb-picking .ctl-halves, .game-pinball.pb-picking .ctl-console { display: none; }
