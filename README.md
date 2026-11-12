@@ -1,5 +1,7 @@
 # Sudoku
 
+> Becoming a single offline app with several timeless games. See [docs/DESIGN.md](docs/DESIGN.md).
+
 Unlimited sudoku that runs fully in the browser. Visit once, then it works offline (installable as an app).
 
 - **Home**: Continue (last game), Continue… (all active games, shown when there are 2+), New game (Easy / Medium / Hard / Expert), Settings.
