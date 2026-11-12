@@ -5,6 +5,10 @@ No ads, no accounts, no tracking. Open it and you're back where you left off.
 
 Games: Sudoku · coming: Solo Test, Solitaire, Mines, Blocks, Maze Chase, Pinball.
 
+## License
+
+GPL-3.0 (see [LICENSE](LICENSE)). Chess bundles the Stockfish engine (Stockfish.js 19, GPL-3.0, unmodified build in `games/chess/engine/`, notice and license there).
+
 ## Docs
 - [docs/DESIGN.md](docs/DESIGN.md): what we're building and why: requirements, budgets, architecture
 - [docs/ADDING-A-GAME.md](docs/ADDING-A-GAME.md): the game module contract and rules
