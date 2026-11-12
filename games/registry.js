@@ -11,6 +11,7 @@ self.GAMES = [
   { id: 'maze-chase', name: 'Maze Chase', blurb: 'Grab every seed, dodge the bots', files: ['game.js', 'engine.js', 'style.css'] },
   { id: 'mines', name: 'Mines', blurb: 'Clear the field by logic, no guessing', files: ['game.js', 'engine.js', 'style.css'] },
   { id: 'solitaire', name: 'Solitaire', blurb: 'Klondike, every deal winnable', files: ['game.js', 'engine.js', 'worker.js', 'style.css'] },
+  { id: 'pinball', name: 'Pinball', blurb: 'Flippers, bumpers and a deep-sea table', files: ['game.js', 'table.js', 'style.css'] },
   { id: 'solo-test', name: 'Solo Test', blurb: 'Jump pegs until one is left', files: ['game.js', 'engine.js', 'worker.js', 'style.css'] },
   { id: 'sudoku', name: 'Sudoku', blurb: 'Numbers 1 to 9, once each', files: ['game.js', 'sudoku.js', 'style.css'] },
 ];
