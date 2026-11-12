@@ -233,7 +233,8 @@ export function createInput(o) {
   api.update = () => {
     const now = performance.now();
     for (const a of actions.values()) {
-      a.pressed = a.pq > 0; a.released = a.rq > 0; a.pq = 0; a.rq = 0;
+      // Several taps between two ticks (fast gesture steps) are delivered one per tick, not merged into one.
+      a.pressed = a.pq > 0; a.released = a.rq > 0; a.pq = Math.min(3, Math.max(0, a.pq - 1)); a.rq = Math.min(3, Math.max(0, a.rq - 1));
       a.pdir = a.pdirQ; a.pdirQ = null;
       if (a.repeat) {
         if (a.pressed) a.next = now + a.repeat.delay;
@@ -266,7 +267,7 @@ export function createInput(o) {
   }
   if (actions.has('pause')) { keyMap.Escape = keyMap.Escape || 'pause'; keyMap.p = keyMap.p || 'pause'; }
   listen(doc, 'keydown', (e) => {
-    if (blocked() || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (blocked() || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return; // defaultPrevented: the shell used it (e.g. Space/P to resume)
     const k = keyName(e), t = keyMap[k];
     if (t) { e.preventDefault(); setDevice('key'); if (!e.repeat) press(t, 'k:' + k); return; }
     if (k === 'Escape') { setDevice('key'); o.onSystem('back'); return; }
@@ -320,8 +321,10 @@ export function createInput(o) {
       }
       const step = g.step || 32;
       if (g.stepLeft || g.stepRight) {
-        while (dx >= step && g.stepRight) { tap(g.stepRight); s.ox += step; s.stepped = 'x'; return; }
-        while (dx <= -step && g.stepLeft) { tap(g.stepLeft); s.ox -= step; s.stepped = 'x'; return; }
+        let ddx = dx; // a fast drag can cover several steps in one event
+        while (ddx >= step && g.stepRight) { tap(g.stepRight); s.ox += step; ddx -= step; s.stepped = 'x'; }
+        while (ddx <= -step && g.stepLeft) { tap(g.stepLeft); s.ox -= step; ddx += step; s.stepped = 'x'; }
+        if (s.stepped === 'x') return;
       }
       if (g.stepDown && dy >= step && s.stepped !== 'x') { tap(g.stepDown); s.oy += step; s.stepped = 'y'; }
     });
