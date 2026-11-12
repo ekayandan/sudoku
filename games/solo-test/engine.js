@@ -5,7 +5,7 @@
   const N = 7;
   const BOARDS = {
     english: { name: 'English', rows: ['..ooo..', '..ooo..', 'ooooooo', 'ooo.ooo', 'ooooooo', '..ooo..', '..ooo..'] },
-    european: { name: 'European', rows: ['..o.o..', '.ooooo.', 'ooooooo', 'ooooooo', 'ooooooo', '.ooooo.', '..ooo..'] },
+    european: { name: 'European', rows: ['...oo..', '.ooooo.', 'ooooooo', 'ooooooo', 'ooooooo', '.ooooo.', '..ooo..'] },
   };
   // '.' inside the shape = the starting empty hole; outside cells are where the row has a space-shaped corner.
   const SHAPES = {
@@ -54,12 +54,12 @@
 
   // Solve to a single peg (anywhere, or at `target` if given). Returns the move list, [] if already solved,
   // null if impossible, or undefined if the time budget ran out.
-  function solve(board, { target = -1, ms = 1500, dead = new Set() } = {}) {
+  function solve(board, { target = -1, goal = 1, ms = 1500, dead = new Set() } = {}) {
     const b = board.slice(), path = [], t0 = Date.now();
     const useSym = target < 0 || target === 24; // the centre is fixed by every symmetry
     let nodes = 0, timeout = false;
     function rec(n) {
-      if (n === 1) return target < 0 || b[target] === 1;
+      if (n <= goal) return goal > 1 || target < 0 || b[target] === 1;
       if ((++nodes & 1023) === 0 && Date.now() - t0 > ms) { timeout = true; return false; }
       const k = useSym ? key(b) : null;
       if (k !== null && dead.has(k)) return false;
@@ -77,7 +77,37 @@
     return timeout ? undefined : null;
   }
 
-  const api = { N, BOARDS, start, moves, movesFrom, apply, undo, pegs, solve };
+  // Position classes (Conway): colour cells by (r+c)%3 and by (r-c)%3. Every jump flips the parity of all three
+  // counts in both colourings, so the pairwise parity sums never change. A single peg can only end on a cell whose
+  // pattern matches the current board's, so many one-peg finishes are ruled out instantly.
+  const CLS = Array.from({ length: N * N }, (_, i) => { const r = (i / N) | 0, c = i % N; return [(r + c) % 3, ((r - c) % 3 + 3) % 3]; });
+  function signature(b) {
+    const k = [[0, 0, 0], [0, 0, 0]];
+    for (let i = 0; i < N * N; i++) if (b[i] === 1) { k[0][CLS[i][0]]++; k[1][CLS[i][1]]++; }
+    return k.map((x) => ((x[0] + x[1]) & 1) * 2 + ((x[1] + x[2]) & 1)).join(',');
+  }
+  function oneEndCells(b) { // cells where a single last peg could legally end, by the invariant
+    const sig = signature(b), out = [];
+    for (let i = 0; i < N * N; i++) if (b[i] !== -1) { const one = b.map((v, j) => (v === -1 ? -1 : j === i ? 1 : 0)); if (signature(one) === sig) out.push(i); }
+    return out;
+  }
+
+  // Fewest pegs still reachable from this position. Returns { best, exact }: exact=false means the time ran out
+  // and `best` is only the smallest goal not yet ruled out (the real best may be worse).
+  function bestPossible(board, { ms = 2000, memo = {} } = {}) {
+    const t0 = Date.now(), n = pegs(board);
+    for (let goal = 1; goal < n; goal++) {
+      if (goal === 1 && !oneEndCells(board).length) continue;
+      const left = ms - (Date.now() - t0);
+      if (left <= 0) return { best: goal, exact: false };
+      const r = solve(board, { goal, ms: left, dead: (memo[goal] = memo[goal] || new Set()) });
+      if (r) return { best: goal, exact: true };
+      if (r === undefined) return { best: goal, exact: false };
+    }
+    return { best: n, exact: true };
+  }
+
+  const api = { N, BOARDS, start, moves, movesFrom, apply, undo, pegs, solve, bestPossible, oneEndCells };
   root.SoloTest = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof self !== 'undefined' ? self : globalThis);

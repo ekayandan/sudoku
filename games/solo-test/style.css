@@ -45,5 +45,9 @@
 }
 .game-solo-test .st-left { display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
 .game-solo-test .st-count { font-size: 28px; font-variant-numeric: tabular-nums; }
+.game-solo-test .st-level { display: flex; flex-direction: column; align-items: center; line-height: 1.15; text-align: center; }
+.game-solo-test .st-level-name { font-size: 17px; color: var(--accent); }
+.game-solo-test .st-level.drop .st-level-name { animation: st-drop .6s ease; }
+@keyframes st-drop { 0% { transform: translateY(-6px); color: var(--wrong); } 60% { color: var(--wrong); } 100% { transform: none; } }
 .game-solo-test .st-tools .tool:active { background: var(--peer); }
 @media (prefers-reduced-motion: reduce) { .game-solo-test .hole.target::after { animation: none; } .game-solo-test .hole i { transition: none; } }

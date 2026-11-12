@@ -11,6 +11,7 @@ const ICON = {
 // Rating printed on the old boxes: fewer pegs left = higher "IQ".
 const RATING = [[1, 'Genius'], [2, 'Very clever'], [3, 'Clever'], [4, 'Good'], [5, 'Average']];
 const rating = (n, centre) => (centre ? 'Genius — in the centre!' : (RATING.find(([k]) => k === n) || [0, 'Keep practising'])[1]);
+const levelName = (n) => rating(n, false);
 const fmt = (ms) => { const s = Math.floor(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 
 export default {
@@ -22,6 +23,7 @@ export default {
     'Goal: one peg left. The best finish is in the centre.',
     'Tap a peg, then a highlighted hole — or drag it.',
     'IQ level: 1 left = Genius, 2 = Very clever, 3 = Clever, 4 = Good, 5 = Average.',
+    '"Best possible" shows the best level you can still reach. It drops when a move rules a better finish out.',
     'Keyboard: arrows move, Enter picks/drops, U or Ctrl/Cmd+Z undoes, R restarts.',
   ],
   create,
@@ -33,7 +35,7 @@ function create(ctx) {
     <main class="screen st">
       <header class="topbar">
         <button class="icon-btn" data-act="home" aria-label="All games">${BACK}</button>
-        <div class="st-title"><b>Solo Test</b><div class="muted small"><span class="st-pegs"></span> · <span class="st-time">0:00</span></div></div>
+        <div class="st-title"><b>Solo Test</b><div class="muted small"><span class="st-pegs"></span> · <span class="st-time">0:00</span><span class="st-best"></span></div></div>
         <button class="icon-btn" data-act="restart" aria-label="Restart">${ICON.restart}</button>
       </header>
       <div class="st-wrap"><div class="st-board" role="grid" aria-label="Peg board"></div></div>
@@ -42,13 +44,35 @@ function create(ctx) {
       </div>
       <div class="st-tools">
         <button class="tool" data-act="undo">${ICON.undo}<span>Undo</span></button>
-        <span class="st-best muted small"></span>
         <span class="st-left"><b class="st-count"></b><span class="muted small">pegs left</span></span>
+        <span class="st-level" aria-live="polite"><b class="st-level-name">Genius</b><span class="muted small">best possible</span></span>
       </div>
     </main>`;
   const $ = (s) => root.querySelector(s);
   const boardEl = $('.st-board');
   const best = ctx.storage.get('best', {});
+
+  // "Best possible" IQ level: fewest pegs still reachable, computed off the main thread after every change.
+  let level = 1, reqId = 0, worker = null, busy = false;
+  function spawn() {
+    worker = new Worker(new URL('worker.js', import.meta.url));
+    worker.onmessage = (e) => {
+      busy = false;
+      if (e.data.id !== reqId) return;
+      const { best, exact } = e.data;
+      const next = exact ? best : Math.max(level, best); // unproven → keep the optimistic level
+      if (next > level && !ctx.settings.reducedMotion) { const el = root.querySelector('.st-level'); el.classList.remove('drop'); void el.offsetWidth; el.classList.add('drop'); }
+      level = next; render();
+    };
+  }
+  function analyse(fresh) {
+    if (!s || s.over) return;
+    if (fresh) level = 1;
+    if (busy && worker) { worker.terminate(); worker = null; }
+    if (!worker) spawn();
+    busy = true; reqId++;
+    worker.postMessage({ id: reqId, board: s.board, b: s.b });
+  }
 
   let s = null;           // { board, b: number[], hist: [from, over, to][], elapsed, over }
   let sel = -1, hintMove = null, paused = false, dragFrom = -1;
@@ -63,7 +87,7 @@ function create(ctx) {
   function newGame(board) {
     s = { board, b: E.start(board), hist: [], elapsed: 0, over: false };
     sel = -1; hintMove = null;
-    persist(); render();
+    persist(); render(); analyse(true);
   }
   function persist() {
     ctx.storage.set('save', s);
@@ -89,7 +113,8 @@ function create(ctx) {
     $('.st-time').textContent = fmt(s.elapsed);
     root.querySelectorAll('[data-board]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.board === s.board)));
     const b = best[s.board];
-    $('.st-best').textContent = b ? 'Best: ' + (b === 'centre' ? '1, centre' : b) : '';
+    $('.st-best').textContent = b ? ' · Best: ' + levelName(b === 'centre' ? 1 : b) : '';
+    $('.st-level-name').textContent = levelName(level);
   }
 
   function move(m) {
@@ -100,7 +125,7 @@ function create(ctx) {
     animate(m);
     // keep the same peg selected if it can jump again (chains are common)
     if (targetsOf(m.to).length) sel = m.to;
-    if (!E.moves(s.b).length) finish();
+    if (!E.moves(s.b).length) finish(); else analyse(false);
     persist(); render();
     input.focus(holes[m.to]);
   }
@@ -113,6 +138,7 @@ function create(ctx) {
   async function finish() {
     s.over = true;
     const n = E.pegs(s.b), centre = n === 1 && s.b[24] === 1;
+    level = n; render();
     const score = centre ? 'centre' : n, prev = best[s.board];
     const rank = (x) => (x === 'centre' ? 0 : x);
     const record = prev == null || rank(score) < rank(prev);
@@ -128,7 +154,7 @@ function create(ctx) {
     if (!h) return;
     E.undo(s.b, { from: h[0], over: h[1], to: h[2] });
     s.over = false; sel = h[0]; hintMove = null;
-    persist(); render(); input.focus(holes[h[0]]);
+    persist(); render(); input.focus(holes[h[0]]); analyse(true);
   }
   // ---------- input ----------
   input.on('activate', (el) => {
@@ -152,7 +178,7 @@ function create(ctx) {
     const from = dragFrom; dragFrom = -1;
     holes[from].classList.remove('lift'); holes[from].firstChild.style.transform = '';
     const m = over && targetsOf(from).find((x) => x.to === +over.dataset.i);
-    if (m) { E.apply(s.b, m); s.hist.push([m.from, m.over, m.to]); sel = targetsOf(m.to).length ? m.to : -1; hintMove = null; ctx.audio.tone(520, 50, 'triangle'); ctx.haptics(8); if (!E.moves(s.b).length) finish(); persist(); render(); }
+    if (m) { E.apply(s.b, m); s.hist.push([m.from, m.over, m.to]); sel = targetsOf(m.to).length ? m.to : -1; hintMove = null; ctx.audio.tone(520, 50, 'triangle'); ctx.haptics(8); if (!E.moves(s.b).length) finish(); else analyse(false); persist(); render(); }
     else render();
   });
   input.on('command', (name) => {
@@ -183,13 +209,13 @@ function create(ctx) {
 
   return {
     start(saved) {
-      if (saved && Array.isArray(saved.b) && saved.b.length === 49 && E.BOARDS[saved.board]) { s = saved; render(); persist(); }
+      if (saved && Array.isArray(saved.b) && saved.b.length === 49 && E.BOARDS[saved.board]) { s = saved; if (s.over) level = E.pegs(s.b); render(); persist(); analyse(true); }
       else newGame('english');
       ctx.requestPersistence();
     },
     pause() { paused = true; },
     resume() { paused = false; last = performance.now(); },
     save() { return s; },
-    destroy() { clearInterval(timer); },
+    destroy() { clearInterval(timer); if (worker) worker.terminate(); },
   };
 }
