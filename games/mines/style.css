@@ -1,63 +1,55 @@
-/* Mines. Everything is scoped to .game-mines */
+/* Minesweeper. Flat two-tone board in the style of Google's Minesweeper; the screen around it follows Sudoku. Scoped to .game-mines */
 .game-mines {
-  --mn-tile: #8fb3e8; --mn-tile-2: #6d97d6; --mn-tile-hi: #c4d8f6; --mn-open: #eef2f7; --mn-open-line: #dbe2ec;
-  --mn-flag: #e11d48; --mn-boom: #fb7185; --mn-mine: #1e293b;
-  --n1: #2563eb; --n2: #0f8a5f; --n3: #e0451f; --n4: #7c3aed; --n5: #b45309; --n6: #0e7490; --n7: #be185d; --n8: #475569;
+  --mn-h0: #aad751; --mn-h1: #a2d149; --mn-hover: #bfe17d;
+  --mn-o0: #e5c29f; --mn-o1: #d7b899;
+  --mn-flag: #f23607; --mn-pole: #3d3d3d;
+  --n1: #1976d2; --n2: #388e3c; --n3: #d32f2f; --n4: #7b1fa2; --n5: #ff8f00; --n6: #0097a7; --n7: #424242; --n8: #9e9e9e;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme]) .game-mines {
-  --mn-tile: #3b5b8f; --mn-tile-2: #2c4775; --mn-tile-hi: #5577ad; --mn-open: #172133; --mn-open-line: #233049;
-  --mn-flag: #fb7185; --mn-boom: #be123c; --mn-mine: #e2e8f0;
-  --n1: #7cb4ff; --n2: #4ade80; --n3: #fb923c; --n4: #c4a7ff; --n5: #fbbf24; --n6: #67e8f9; --n7: #f9a8d4; --n8: #cbd5e1; } }
+  --mn-h0: #5f7a35; --mn-h1: #587230; --mn-hover: #6c8a3e;
+  --mn-o0: #4a4138; --mn-o1: #433a32;
+  --mn-flag: #ff6a3d; --mn-pole: #e8e8e8;
+  --n1: #64b5f6; --n2: #81c784; --n3: #ef7a7a; --n4: #ce93d8; --n5: #ffb74d; --n6: #4dd0e1; --n7: #e0e0e0; --n8: #bdbdbd; } }
 :root[data-theme="dark"] .game-mines {
-  --mn-tile: #3b5b8f; --mn-tile-2: #2c4775; --mn-tile-hi: #5577ad; --mn-open: #172133; --mn-open-line: #233049;
-  --mn-flag: #fb7185; --mn-boom: #be123c; --mn-mine: #e2e8f0;
-  --n1: #7cb4ff; --n2: #4ade80; --n3: #fb923c; --n4: #c4a7ff; --n5: #fbbf24; --n6: #67e8f9; --n7: #f9a8d4; --n8: #cbd5e1;
+  --mn-h0: #5f7a35; --mn-h1: #587230; --mn-hover: #6c8a3e;
+  --mn-o0: #4a4138; --mn-o1: #433a32;
+  --mn-flag: #ff6a3d; --mn-pole: #e8e8e8;
+  --n1: #64b5f6; --n2: #81c784; --n3: #ef7a7a; --n4: #ce93d8; --n5: #ffb74d; --n6: #4dd0e1; --n7: #e0e0e0; --n8: #bdbdbd;
 }
 
-.game-mines .mn { height: 100%; min-height: 0; width: 100%; min-width: 0; box-sizing: border-box; max-width: 1100px; gap: 10px; padding-left: max(6px, env(safe-area-inset-left)); padding-right: max(6px, env(safe-area-inset-right)); padding-bottom: max(8px, env(safe-area-inset-bottom)); }
-.game-mines .topbar, .game-mines .mn-bar, .game-mines .mn-tools { padding: 0 6px; }
-.game-mines .mn-title { flex: 1; text-align: center; }
+.game-mines .mn { height: 100%; min-height: 0; width: 100%; min-width: 0; box-sizing: border-box; max-width: 1100px; gap: 12px; padding-left: max(6px, env(safe-area-inset-left)); padding-right: max(6px, env(safe-area-inset-right)); padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+.game-mines .topbar { padding: 0 6px; }
+.game-mines .mn-title { flex: 1; text-align: center; font-variant-numeric: tabular-nums; }
+.game-mines .mn-name { font-weight: 650; }
 .game-mines .mn-sizes { align-self: center; }
-.game-mines .mn-bar { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; }
-.game-mines .mn-count { display: inline-flex; align-items: center; gap: 6px; font-size: 20px; font-variant-numeric: tabular-nums; min-width: 64px; }
-.game-mines .mn-ic { width: 22px; height: 22px; color: var(--text); display: inline-grid; }
-.game-mines .mn-ic svg { width: 100%; height: 100%; }
-.game-mines .mn-time { font-size: 20px; font-variant-numeric: tabular-nums; min-width: 64px; text-align: right; }
-.game-mines .mn-msg { text-align: center; font-size: 14px; color: var(--muted); }
-.game-mines .mn-msg.win { color: var(--solved-text); font-weight: 650; }
-.game-mines .mn-msg.lose { color: var(--wrong); font-weight: 650; }
+.game-mines .mn-msg { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); margin: 0; }
 
-.game-mines .mn-stage { flex: 1; min-height: 0; min-width: 0; overflow: auto; display: flex; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; border-radius: 12px; }
+.game-mines .mn-stage { flex: 1; min-height: 0; min-width: 0; overflow: auto; display: flex; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 .game-mines .mn-board {
-  margin: auto; display: grid; grid-auto-rows: var(--cs, 32px); line-height: 1;
+  margin: auto; display: grid; grid-auto-rows: var(--cs, 32px); line-height: 1; background: var(--mn-h0); border-radius: 6px; overflow: hidden;
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-  font-weight: 750; font-variant-numeric: tabular-nums;
+  font-weight: 700; font-variant-numeric: tabular-nums;
 }
-.game-mines .mn-c {
-  position: relative; display: grid; place-items: center; box-sizing: border-box;
-  border: 1px solid transparent; background-clip: padding-box; border-radius: 22%;
-}
-.game-mines .mn-c svg { width: 72%; height: 72%; }
-.game-mines .mn-c.h {
-  background-image: linear-gradient(160deg, var(--mn-tile-hi), var(--mn-tile) 45%, var(--mn-tile-2));
-  box-shadow: inset 0 -2px 0 rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.35);
-  cursor: pointer;
-}
-.game-mines .mn-c.h:active { filter: brightness(1.1); }
-.game-mines .mn-c.f { color: var(--text); }
-.game-mines .mn-c.wrong::after { content: ''; position: absolute; inset: 18%; background:
-  linear-gradient(45deg, transparent 44%, var(--wrong) 44% 56%, transparent 56%), linear-gradient(-45deg, transparent 44%, var(--wrong) 44% 56%, transparent 56%); }
-.game-mines .mn-c.o { background: var(--mn-open); border-radius: 12%; box-shadow: inset 0 0 0 .5px var(--mn-open-line); }
-.game-mines .mn-c.mine { color: var(--mn-mine); }
-.game-mines .mn-c.boom { background: var(--mn-boom); color: #fff; border-radius: 22%; }
+.game-mines .mn-c { position: relative; display: grid; place-items: center; box-sizing: border-box; }
+.game-mines .mn-c svg { width: 74%; height: 74%; }
+.game-mines .mn-c.h { background: var(--mn-h0); cursor: pointer; }
+.game-mines .mn-c.h.d { background: var(--mn-h1); }
+@media (hover: hover) { .game-mines .mn-c.h:hover { background: var(--mn-hover); } }
+.game-mines .mn-c.o { background: var(--mn-o0); }
+.game-mines .mn-c.o.d { background: var(--mn-o1); }
+.game-mines .mn-c.wrong::after { content: ''; position: absolute; inset: 20%; background:
+  linear-gradient(45deg, transparent 44%, var(--n7) 44% 56%, transparent 56%), linear-gradient(-45deg, transparent 44%, var(--n7) 44% 56%, transparent 56%); }
 .game-mines .n1 { color: var(--n1); } .game-mines .n2 { color: var(--n2); } .game-mines .n3 { color: var(--n3); } .game-mines .n4 { color: var(--n4); }
 .game-mines .n5 { color: var(--n5); } .game-mines .n6 { color: var(--n6); } .game-mines .n7 { color: var(--n7); } .game-mines .n8 { color: var(--n8); }
 .game-mines .mn-c.kb-focus { outline: none !important; box-shadow: inset 0 0 0 3px var(--accent); z-index: 1; }
 
-.game-mines .mn-tools { display: flex; justify-content: center; gap: 12px; }
+/* tool row, as in Sudoku */
+.game-mines .mn-tools { display: flex; justify-content: center; gap: 6px; }
 .game-mines .mn-tools .tool {
-  border: 1px solid var(--line); background: var(--surface); border-radius: 14px; padding: 8px 16px; min-height: 44px;
-  display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 550; color: var(--text);
+  flex: 0 1 25%; border: 0; background: transparent; border-radius: 12px; padding: 6px 0;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12.5px; color: var(--muted);
 }
+.game-mines .mn-tools .tool[hidden] { display: none; }
 .game-mines .mn-tools .tool:active { background: var(--peer); }
-.game-mines .mn-mode[aria-pressed="true"] { background: var(--mn-flag); border-color: var(--mn-flag); color: #fff; }
+.game-mines .mn-tools .tool[aria-pressed="true"], .game-mines .mn-tools .tool[aria-pressed="true"] b { color: var(--accent); }
+.game-mines .mn-tools .tool b { font-weight: 700; }
