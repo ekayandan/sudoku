@@ -124,14 +124,18 @@ function loadCss(id, files) {
   }
 }
 
+let opening = null; // id being loaded, so a second open of the same game (e.g. hashchange + boot) is ignored
 async function openGame(id) {
   const meta = byId[id];
   if (!meta) return showHome();
-  if (active && active.id === id) return;
+  if ((active && active.id === id) || opening === id) return;
   closeGame();
   loadCss(id, meta.files || []);
+  opening = id;
   let mod;
-  try { mod = (await import('./games/' + id + '/game.js')).default; } catch (e) { console.error(e); toast('Could not load ' + meta.name); return showHome(); }
+  try { mod = (await import('./games/' + id + '/game.js')).default; } catch (e) { console.error(e); opening = null; toast('Could not load ' + meta.name); return showHome(); }
+  if (opening !== id) return; // another game was opened meanwhile
+  opening = null;
   const root = document.createElement('div');
   root.className = 'game-root game-' + id;
   $('#play').replaceChildren(root);
@@ -235,7 +239,7 @@ function showScreen(name) {
   document.body.dataset.screen = name;
   window.scrollTo(0, 0);
 }
-function showHome() { closeGame(); showScreen('home'); renderHome(); }
+function showHome() { opening = null; closeGame(); showScreen('home'); renderHome(); }
 const route = () => decodeURIComponent((location.hash.match(/^#\/([\w-]+)/) || [])[1] || '');
 let pushed = false; // true when the current #/game entry was added by go(), so history.back() stays inside the app
 function go(id) { if (route() !== id) { history.pushState(null, '', '#/' + id); pushed = true; } openGame(id); }

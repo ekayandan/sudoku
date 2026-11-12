@@ -107,16 +107,16 @@ export function createInput(o) {
       if (p.dragging) emit('dragmove', { x: e.clientX, y: e.clientY, dx, dy, over: hit(e), from: p.el });
       else if (Math.hypot(dx, dy) > DRAG_PX * 2) clearTimeout(p.timer); // finger slid away: no long-press
     });
-    const hit = (e) => {
+    const hit = (e, skip = p && p.dragging ? p.el : null) => { // skip = the element being dragged
       const els = doc.elementsFromPoint(e.clientX, e.clientY);
-      for (const el of els) { const t = targetOf(el); if (inRoot(t) && t !== (p && p.dragging ? p.el : null)) return t; }
+      for (const el of els) { const t = targetOf(el); if (inRoot(t) && t !== skip) return t; }
       return null;
     };
     const end = (e, cancelled) => {
       if (!p || e.pointerId !== p.id) return;
       clearTimeout(p.timer);
       const press = p; p = null;
-      if (press.dragging) { emit('drop', cancelled ? null : hit(e), press.el, { x: e.clientX, y: e.clientY }); return; }
+      if (press.dragging) { emit('drop', cancelled ? null : hit(e, press.el), press.el, { x: e.clientX, y: e.clientY }); return; }
       if (cancelled || press.consumed) return;
       const now = performance.now();
       emit('activate', press.el, { by: 'pointer' });
