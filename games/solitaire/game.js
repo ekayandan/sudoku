@@ -48,8 +48,8 @@ function create(ctx) {
     <main class="screen sol">
       <header class="topbar">
         <button class="icon-btn" data-act="home" aria-label="All games">${BACK}</button>
-        <div class="sol-title"><b>Solitaire</b><div class="muted small"><span class="sol-mode"></span> · <span class="sol-time">0:00</span> · <span class="sol-moves"></span></div></div>
-        <button class="icon-btn" data-act="new" aria-label="New game">${ICON.plus}</button>
+        <div class="sol-title"><div class="sol-name">Solitaire</div><div class="muted small"><span class="sol-time">0:00</span> · <span class="sol-moves"></span></div></div>
+        <button class="icon-btn" data-act="stats" aria-label="Statistics">${ICON.stats}</button>
       </header>
       <div class="sol-table pre" aria-label="Card table">
         <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${SUIT_SVG.map((p, i) => `<symbol id="sol-s${i}" viewBox="0 0 24 24">${p}</symbol>`).join('')}</defs></svg>
@@ -58,15 +58,15 @@ function create(ctx) {
       <div class="sol-tools">
         <button class="tool" data-act="undo">${ICON.undo}<span>Undo</span></button>
         <button class="tool" data-act="hint">${ICON.hint}<span>Hint</span></button>
-        <button class="tool" data-act="stats">${ICON.stats}<span>Stats</span></button>
+        <button class="tool" data-act="new">${ICON.plus}<span>New</span></button>
       </div>
       <div class="sol-panel" hidden><div class="sol-box">
         <h3 class="sol-ptitle"></h3><p class="sol-ptext muted"></p>
         <div class="sol-choices">
-          <button data-new="1"><b>Draw 1</b><small>relaxed</small></button>
-          <button data-new="3"><b>Draw 3</b><small>classic challenge</small></button>
+          <button class="card" data-new="1"><b>Draw 1</b><span class="muted small">Relaxed</span></button>
+          <button class="card" data-new="3"><b>Draw 3</b><span class="muted small">Classic</span></button>
         </div>
-        <button class="sol-close" data-act="close">Cancel</button>
+        <div class="modal-actions"><button class="pill sol-close" data-act="close">Cancel</button></div>
       </div></div>
     </main>`;
   const $ = (q) => root.querySelector(q);
@@ -77,9 +77,9 @@ function create(ctx) {
   const cardEls = [];
   for (let c = 0; c < 52; c++) {
     const su = K.suit(c), r = K.rank(c), el = document.createElement('div');
-    el.className = 'sc down' + (K.red(c) ? ' red' : '') + (r >= 10 ? ' court' : '');
+    el.className = 'sc down' + (K.red(c) ? ' red' : '') + (r >= 10 ? ' court' : r === 0 ? ' ace' : '');
     el.dataset.c = c;
-    el.innerHTML = `<span class="ix"><b>${K.RANKS[r]}</b>${use(su)}</span><span class="pip">${r >= 10 ? `<i>${K.RANKS[r]}</i>` : ''}${use(su)}</span>`;
+    el.innerHTML = `<span class="ix">${K.RANKS[r]}</span><svg class="is"><use href="#sol-s${su}"/></svg><span class="pip">${r >= 10 ? `<i>${K.RANKS[r]}</i>` : use(su)}</span>`;
     table.appendChild(el); cardEls.push(el);
   }
   const slotEls = [];
@@ -124,7 +124,7 @@ function create(ctx) {
   // ---------- layout
   function geom() {
     const W = table.clientWidth, H = table.clientHeight, pad = 6;
-    const gap = Math.max(4, Math.round(W * 0.012));
+    const gap = Math.max(4, Math.round(W * 0.01));
     let cw = Math.floor((W - 2 * pad - 6 * gap) / 7);
     cw = Math.max(30, Math.min(cw, 100, Math.floor((H - 2 * pad) / 1.42 / 3.6)));
     const ch = Math.round(cw * 1.42);
@@ -197,7 +197,6 @@ function create(ctx) {
     }
     if (hint && hint.to != null && hint.to < 7 && st.t[hint.to].length) cardEls[K.top(st.t[hint.to])].classList.add('hint');
     if (hint && hint.to >= F0 && hint.to < F0 + 4 && st.f[hint.to - F0]) cardEls[K.foundTop(st, hint.to - F0)].classList.add('hint');
-    $('.sol-mode').textContent = 'Draw ' + st.draw;
     $('.sol-moves').textContent = s.moves + (s.moves === 1 ? ' move' : ' moves');
     $('.sol-time').textContent = fmt(s.elapsed);
     root.querySelector('[data-act="undo"]').disabled = !s.hist.length || s.won || busy;
@@ -276,26 +275,8 @@ function create(ctx) {
     persist(); render();
     ctx.audio.tone(523, 90, 'triangle'); setTimeout(() => ctx.audio.tone(659, 90, 'triangle'), 110); setTimeout(() => ctx.audio.tone(784, 180, 'triangle'), 220);
     ctx.haptics(30);
-    celebrate();
-    setTimeout(() => openPanel('You won!', fmt(s.elapsed) + ' · ' + s.moves + ' moves' + (record ? ' · new best time!' : '') + '\nPlay again?', 'Look at the table'), rm ? 50 : 1400);
+    setTimeout(() => openPanel('You won', 'Draw ' + s.st.draw + ' · ' + fmt(s.elapsed) + ' · ' + s.moves + ' moves' + (record ? '\nNew best time' : '') + '\nWon ' + st.won + ' of ' + Math.max(st.played, st.won) + ' games. Play again?', 'Close'), rm ? 50 : 700);
   }
-  function celebrate() {
-    if (rm) return;
-    // the four kings hop, then a shower of suit symbols
-    for (let i = 0; i < 4; i++) cardEls[i * 13 + 12].animate([{ transform: cardEls[i * 13 + 12].style.transform }, { transform: cardEls[i * 13 + 12].style.transform + ' translateY(-18px) rotate(-6deg)' }, { transform: cardEls[i * 13 + 12].style.transform }], { duration: 500, delay: i * 120, easing: 'ease-out' });
-    const box = table.getBoundingClientRect();
-    for (let k = 0; k < 36; k++) {
-      const el = document.createElement('div');
-      const su = k % 4;
-      el.className = 'sol-confetti' + (su === 1 || su === 2 ? ' red' : '');
-      el.innerHTML = use(su);
-      table.appendChild(el);
-      const x = Math.random() * box.width, rot = (Math.random() - 0.5) * 720;
-      const a = el.animate([{ transform: `translate(${x}px, -30px) rotate(0)`, opacity: 1 }, { transform: `translate(${x + (Math.random() - 0.5) * 120}px, ${box.height + 30}px) rotate(${rot}deg)`, opacity: 0.8 }], { duration: 1400 + Math.random() * 1200, delay: Math.random() * 600, easing: 'cubic-bezier(.3,.1,.7,1)', fill: 'both' });
-      a.onfinish = () => el.remove();
-    }
-  }
-
   // ---------- panel (new game / win)
   function openPanel(title, text, closeLabel = 'Cancel') {
     $('.sol-ptitle').textContent = title;
@@ -309,7 +290,7 @@ function create(ctx) {
   ctx.onBack(() => { if (!panel.hidden && s) { closePanel(); return true; } return false; });
   function askNew() {
     if (busy && !s) return;
-    openPanel('New game', s && s.moves && !s.won ? 'This game will count as lost.' : 'Every deal can be won.');
+    openPanel('New game', (s && s.moves && !s.won ? 'This game will count as lost. ' : '') + 'Every deal can be won.');
   }
   function showStats() {
     const line = (d) => { const x = stats[d]; return `Draw ${d}: ${x.played} played · ${x.won} won` + (x.played ? ` (${Math.round((x.won / x.played) * 100)}%)` : '') + (x.best ? ` · best ${fmt(x.best)}` : ''); };
