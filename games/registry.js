@@ -7,6 +7,7 @@
 // Each game folder also has icon.svg (square, drawn for a 48–96 px tile); it is cached automatically.
 self.GAMES = [
   { id: 'blocks', name: 'Stackfall', blurb: 'Drop blocks, clear full rows', files: ['game.js', 'engine.js', 'style.css'] },
+  { id: 'chess', name: 'Chess', blurb: 'Play the computer, beginner to master', files: ['game.js', 'chess.js', 'style.css', 'engine/stockfish-19-lite-single.js', 'engine/stockfish-19-lite-single.wasm'] },
   { id: 'mines', name: 'Mines', blurb: 'Clear the field by logic, no guessing', files: ['game.js', 'engine.js', 'style.css'] },
   { id: 'solo-test', name: 'Solo Test', blurb: 'Jump pegs until one is left', files: ['game.js', 'engine.js', 'worker.js', 'style.css'] },
   { id: 'sudoku', name: 'Sudoku', blurb: 'Numbers 1 to 9, once each', files: ['game.js', 'sudoku.js', 'style.css'] },
