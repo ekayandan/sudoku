@@ -35,7 +35,7 @@ function create(ctx) {
     <main class="screen st">
       <header class="topbar">
         <button class="icon-btn" data-act="home" aria-label="All games">${BACK}</button>
-        <div class="st-title"><b>Solo Test</b><div class="muted small"><span class="st-pegs"></span> · <span class="st-time">0:00</span><span class="st-best"></span></div></div>
+        <div class="st-title"><div class="st-name">Solo Test</div><div class="muted small"><span class="st-pegs"></span> · <span class="st-time">0:00</span><span class="st-best"></span></div></div>
         <button class="icon-btn" data-act="restart" aria-label="Restart">${ICON.restart}</button>
       </header>
       <div class="st-wrap"><div class="st-board" role="grid" aria-label="Peg board"></div></div>
@@ -47,7 +47,16 @@ function create(ctx) {
         <span class="st-left"><b class="st-count"></b><span class="muted small">pegs left</span></span>
         <span class="st-level" aria-live="polite"><b class="st-level-name">Genius</b><span class="muted small">best possible</span></span>
       </div>
-    </main>`;
+    </main>
+    <dialog class="modal st-end">
+      <h2 class="st-end-title"></h2>
+      <p class="muted st-end-stats"></p>
+      <ul class="st-scale"></ul>
+      <div class="modal-actions">
+        <button data-act="end-look" class="pill">Look at board</button>
+        <button data-act="end-again" class="pill primary">Play again</button>
+      </div>
+    </dialog>`;
   const $ = (s) => root.querySelector(s);
   const boardEl = $('.st-board');
   const best = ctx.storage.get('best', {});
@@ -143,11 +152,13 @@ function create(ctx) {
     const rank = (x) => (x === 'centre' ? 0 : x);
     const record = prev == null || rank(score) < rank(prev);
     if (record) { best[s.board] = score; ctx.storage.set('best', best); }
-    const msg = (n === 1 ? '🎉 ' : '') + n + (n === 1 ? ' peg' : ' pegs') + ' left\nIQ level: ' + rating(n, centre) +
-      '\n\n' + RATING.map(([k, t]) => k + ' → ' + t).join('\n');
     ctx.audio.tone(n === 1 ? 784 : 330, 160, 'triangle');
     await new Promise((r) => setTimeout(r, ctx.settings.reducedMotion ? 0 : 350));
-    if (await ctx.ui.confirm(msg + (record ? '\nNew best!' : '') + '\nTime ' + fmt(s.elapsed), 'Play again', 'Look at board')) newGame(s.board);
+    if (!s.over) return; // undone or switched meanwhile
+    $('.st-end-title').textContent = n + (n === 1 ? ' peg' : ' pegs') + ' left';
+    $('.st-end-stats').textContent = 'IQ level: ' + rating(n, centre) + ' · ' + fmt(s.elapsed) + (record ? ' · New best' : '');
+    $('.st-scale').innerHTML = RATING.map(([k, t]) => '<li' + (k === n ? ' class="on"' : '') + '><span>' + k + (k === 1 ? ' peg' : ' pegs') + '</span><span>' + t + '</span></li>').join('');
+    $('.st-end').showModal();
   }
   function undo() {
     const h = s.hist.pop();
@@ -195,6 +206,8 @@ function create(ctx) {
       if (s.hist.length && !s.over && !(await ctx.ui.confirm('Switch board? This game will be lost.'))) return;
       return newGame(b.dataset.board);
     }
+    if (b.dataset.act === 'end-look') $('.st-end').close();
+    if (b.dataset.act === 'end-again') { $('.st-end').close(); newGame(s.board); }
     if (b.dataset.act === 'home') ctx.back();
     if (b.dataset.act === 'undo') undo();
     if (b.dataset.act === 'restart') restart();
@@ -216,6 +229,6 @@ function create(ctx) {
     pause() { paused = true; },
     resume() { paused = false; last = performance.now(); },
     save() { return s; },
-    destroy() { clearInterval(timer); if (worker) worker.terminate(); },
+    destroy() { clearInterval(timer); const d = root.querySelector('.st-end'); if (d && d.open) d.close(); if (worker) worker.terminate(); },
   };
 }
