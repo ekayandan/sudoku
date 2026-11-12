@@ -23,8 +23,8 @@ for (const g of self.GAMES) {
   if (!Array.isArray(g.files) || g.files[0] !== 'game.js') fail(g.id + ': files must start with game.js');
   const dir = path.join(ROOT, 'games', g.id);
   for (const f of ['icon.svg', ...(g.files || [])]) if (!fs.existsSync(path.join(dir, f))) fail(g.id + ': missing ' + f);
-  // engine/ holds unmodified third-party engine builds (e.g. Stockfish WASM, which loads its own .wasm): not game code
-  for (const f of (g.files || []).filter((f) => f.endsWith('.js') && !f.startsWith('engine/'))) {
+  // engine/ and vendor/ hold unmodified third-party builds (e.g. Stockfish WASM, the chessground board): not game code
+  for (const f of (g.files || []).filter((f) => f.endsWith('.js') && !f.startsWith('engine/') && !f.startsWith('vendor/'))) {
     const p = path.join(dir, f);
     if (!fs.existsSync(p)) continue;
     const src = fs.readFileSync(p, 'utf8');

@@ -6,7 +6,7 @@
 //   files   every file the game needs, relative to games/<id>/ (game.js first). All are cached for offline use.
 // Each game folder also has icon.svg (square, drawn for a 48–96 px tile); it is cached automatically.
 self.GAMES = [
-  { id: 'chess', name: 'Chess', blurb: 'Play the computer, beginner to master', files: ['game.js', 'chess.js', 'style.css', 'engine/stockfish-19-lite-single.js', 'engine/stockfish-19-lite-single.wasm'] },
+  { id: 'chess', name: 'Chess', blurb: 'Play the computer, beginner to master', files: ['game.js', 'chess.js', 'vendor/chessground.js', 'vendor/chessground.base.css', 'vendor/cburnett.css', 'style.css', 'engine/stockfish-19-lite-single.js', 'engine/stockfish-19-lite-single.wasm'] },
   { id: 'mines', name: 'Mines', blurb: 'Clear the field by logic, no guessing', files: ['game.js', 'engine.js', 'style.css'] },
   { id: 'solitaire', name: 'Solitaire', blurb: 'Klondike, every deal winnable', files: ['game.js', 'engine.js', 'worker.js', 'style.css'] },
   { id: 'pinball', name: 'Pinball', blurb: 'Flippers, bumpers and a deep-sea table', files: ['game.js', 'table.js', 'style.css'] },
