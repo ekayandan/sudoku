@@ -12,6 +12,8 @@
 
   const store = Object.assign({ games: {}, solved: {} }, load(KEY, {}));
   store.settings = Object.assign({ showMistakes: true, highlight: true, autoNotes: true, theme: 'light' }, store.settings);
+  // 'system' used to be the stored default; move existing installs to the new light default once.
+  if (!store.settings.lightDefault) { if (store.settings.theme === 'system') store.settings.theme = 'light'; store.settings.lightDefault = true; }
   for (const d of DIFFS) store.solved[d] = store.solved[d] || 0;
   // Saved data must stay under 100 KB in the worst case (checked in CI by tools/check-size.js):
   // MAX_SAVED games (least recently played dropped first), each keeping its last MAX_UNDO cell changes.

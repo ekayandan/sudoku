@@ -7,7 +7,7 @@
   <meta name="description" content="Unlimited sudoku that works offline on any device.">
   <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
-  <script>try{var t=localStorage.getItem('sudoku.theme');document.documentElement.dataset.theme=t==='dark'||t==='system'?(t==='dark'?'dark':''):'light'}catch(e){document.documentElement.dataset.theme='light'}</script>
+  <script>try{var t=localStorage.getItem('sudoku.theme')||'light';if(t!=='system')document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme='light'}</script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
